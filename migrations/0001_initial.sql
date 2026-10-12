@@ -1,0 +1,15 @@
+CREATE TABLE products (id TEXT PRIMARY KEY, nama TEXT NOT NULL, gambar TEXT NOT NULL DEFAULT '', penerangan TEXT NOT NULL DEFAULT '', kategori TEXT NOT NULL DEFAULT '', demo TEXT NOT NULL DEFAULT '', likes INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX products_category ON products(kategori);
+CREATE TABLE categories (nama TEXT PRIMARY KEY);
+CREATE TABLE testimonials (id TEXT PRIMARY KEY, nama TEXT NOT NULL, rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5), komen TEXT NOT NULL, link TEXT NOT NULL DEFAULT '');
+CREATE TABLE documents (key TEXT PRIMARY KEY, value TEXT NOT NULL CHECK(json_valid(value)));
+CREATE TABLE admin (id INTEGER PRIMARY KEY CHECK(id=1), username TEXT NOT NULL, password_hash TEXT NOT NULL);
+CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, expires INTEGER NOT NULL);
+CREATE INDEX session_expiry ON sessions(expires);
+CREATE TABLE login_limits (key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires INTEGER NOT NULL);
+CREATE TABLE counters (jenis TEXT NOT NULL, produk TEXT NOT NULL DEFAULT '', count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(jenis, produk));
+CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, t TEXT NOT NULL, jenis TEXT NOT NULL, produk TEXT NOT NULL DEFAULT '');
+CREATE INDEX events_time ON events(t);
+CREATE TRIGGER events_cap AFTER INSERT ON events BEGIN
+  DELETE FROM events WHERE id <= NEW.id - 5000;
+END;

@@ -1,0 +1,37 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "drexcel",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-10-12",
+  "vars": {
+    "GITHUB_OWNER": "aizatsofian",
+    "GITHUB_REPO": "drexcel",
+    "GITHUB_BRANCH": "main"
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "drexcel-local",
+    "database_id": "00000000-0000-0000-0000-000000000000",
+    "migrations_dir": "migrations"
+  }],
+  "env": {
+    "production": {
+      "vars": { "GITHUB_OWNER": "aizatsofian", "GITHUB_REPO": "drexcel", "GITHUB_BRANCH": "main" },
+      "d1_databases": [{
+        "binding": "DB",
+        "database_name": "drexcel-production",
+        "database_id": "94f04e42-b38a-4e78-8806-947157fa760c",
+        "migrations_dir": "migrations"
+      }]
+    },
+    "preview": {
+      "vars": { "GITHUB_OWNER": "aizatsofian", "GITHUB_REPO": "drexcel", "GITHUB_BRANCH": "main" },
+      "d1_databases": [{
+        "binding": "DB",
+        "database_name": "drexcel-preview",
+        "database_id": "468597aa-cc71-47ed-94d3-8532bf63c081",
+        "migrations_dir": "migrations"
+      }]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars*
+.env*
+sys/data.json
+data.xlsx
+md/3link.md
+*.seed.sql
+__pycache__/
