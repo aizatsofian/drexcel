@@ -262,3 +262,12 @@ Aliran uji: `GET /api/data` (12 produk, tiada `harga`/`siteName`/`themeColor`, t
 - **Tetapan (`index.html`):** `#logoutBtn` pindah atas sekali (id kekal, binding admin.js tidak berubah); kotak Data row1 `exportDataBtn|exportLainBtn`, row2 `exportAnaBtn|importBtn`.
 - **Backup (`js/backup.js`):** pecah builder (`buildDataWorkbook` 2 sheet, baharu `buildLainWorkbook` 4 sheet + handler `lain-website-*.xlsx`); `parseContent` separa (sheet tiada → null); `parseWorkbook` tidak lagi wajib 6 sheet; handler import gabung per-bahagian + skop dinamakan dalam `confirmDialog`.
 - **Ujian local:** `node --check` backup/app OK; harness stub (`test-split-backup.mjs`, C: temp): split tepat, round-trip penuh 96/8, separa null betul, gabung kekalkan semasa — SEMUA LULUS; server + curl: logout atas/row1/row2 ada, tiada `badge-disc` dalam cart, total row melintang. Belum uji: browser + SheetJS sebenar, preview/production.
+
+## 22. Deploy Fasa 8+21 LIVE (13 Okt 2026)
+
+- **Keputusan pengguna:** production terus (langkau preview) + ujian tulis terkawal dengan cleanup.
+- **Status: LIVE.** Production deployment `f73ac97e` (https://drexcel.pages.dev). Kod GitHub main `c73c82a` (+ docs). Tiada migrasi DB (senarai migrasi: tiada pending). D1 tidak disentuh kecuali baris ujian yang dipadam semula.
+- **Prosedur:** sync 5 fail (index/js-app/js-backup/2readme/style) → `npm test` 9/9 → build → deploy production → 8 semakan statik live lulus (waFloat, logout atas, exportLain, openWaFloat, tiada badge cart, buildLain, CSS WA + tema).
+- **Ujian tulis production (cleanup penuh):** cipta produk ujian (harga 100/80 OK) → PUT rename OK → upload PNG 1x1 OK bytes tepat → padam OK. Insiden: larian skrip pertama parse respons salah (`item` vs `product`) dan tinggalkan 1 produk; dikesan dan dipadam — verified 96 produk, 0 sisa. Produk sebenar `Sistem Analisis Ujian` tidak disentuh (nama mirip, id disahkan sebelum padam).
+- **Nota push:** push pertama ditolak kerana commit gambar ujian `[skip ci]` masuk dahulu; `pull --rebase` kemudian push OK. PNG ujian 100 bait dibuang semula (`e689ab7`) — repo bersih.
+- **Belum uji:** browser interaktif + SheetJS export/import sebenar di production.
