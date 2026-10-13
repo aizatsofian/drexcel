@@ -29,6 +29,31 @@ function go(page) {
   window.scrollTo({ top: 0 });
   if (page === "bakul") renderCart();
   if (page === "tetapan" && typeof loadMiniChart === "function") loadMiniChart();
+  updateWaFloat(page);
+}
+// Butang terapung WhatsApp: public sahaja + perlu nombor Tetapan
+function updateWaFloat(page) {
+  const btn = document.getElementById("waFloat");
+  if (!btn) return;
+  const active = document.querySelector("#bottomNav .nav-btn.active");
+  const cur = page || (active && active.dataset && active.dataset.page) || "home";
+  const no = (S.data && S.data.settings && S.data.settings.whatsapp) || "";
+  btn.classList.toggle("hidden", cur === "tetapan" || !no);
+}
+function openWaFloat() {
+  const no = (S.data && S.data.settings && S.data.settings.whatsapp) || "";
+  if (!no) { toast("Nombor WhatsApp belum ditetapkan", "err"); return; }
+  let msg = "Assalamualaikum Dr Excel. saya nak sistem ... ";
+  const items = S.cart.map(findP).filter(Boolean);
+  if (items.length) {
+    const lines = items.map((p, i) => {
+      const b = Number(p.harga_selepas || 0) > 0 ? ` (${fmtRM(p.harga_selepas)})` : "";
+      return `${i + 1}. ${p.nama}${b}`;
+    });
+    msg += "\n" + lines.join("\n");
+  }
+  API.track("whatsapp");
+  window.open(`https://wa.me/${no}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
 async function init() {
@@ -64,10 +89,15 @@ async function init() {
       await reloadAll(); toast("Step disimpan", "ok");
     } else toast("Gagal simpan step", "err");
   });
-  document.getElementById("clearCartBtn").addEventListener("click", async () => {
-    if (!S.cart.length) return;
+  document.getElementById("clearCartBtn").addEventListener("click", async () => {    if (!S.cart.length) return;
     if (await confirmDialog("Kosongkan semua bakul?")) { S.cart = []; saveCart(); renderCart(); toast("Bakul dikosongkan", "ok"); }
   });
+  // Butang terapung WhatsApp (ikon SVG sama seperti grid Socmed)
+  const waBtn = document.getElementById("waFloat");
+  if (waBtn) {
+    try { waBtn.innerHTML = SOCMED_SVG.whatsapp || ""; } catch { waBtn.textContent = "WA"; }
+    waBtn.addEventListener("click", openWaFloat);
+  }
   // Nota bakul: local sahaja (localStorage["nota"]), dihantar dalam mesej WA checkout
   try {
     const savedNota = localStorage.getItem("nota") || "";
@@ -89,6 +119,7 @@ async function reloadAll(force = false) {
     S.data = r.data;
     applyTheme();
     renderHome(); renderTesti(); renderAbout(); renderSocmed(); renderStep();
+    updateWaFloat();
     if (typeof renderAdminLists === "function") renderAdminLists();
     if (typeof fillSettingsForm === "function") fillSettingsForm();
   } catch (e) {
@@ -330,12 +361,13 @@ function renderCart() {
   const items = S.cart.map(findP).filter(Boolean);
   box.innerHTML = items.length ? items.map((p) => {
     const d = discPct(p);
+    const a = Number(p.harga_sebelum || 0), b = Number(p.harga_selepas || 0);
+    const harga = (a > 0 || b > 0)
+      ? `<div class="cart-prices">${a > 0 ? `<span class="price-old">${fmtRM(a)}</span>` : ""}${d > 0 ? `<span class="price-disc">-${d}%</span>` : ""}${b > 0 ? `<span class="price-new">${fmtRM(b)}</span>` : ""}</div>`
+      : "";
     return `<div class="cart-item">
-      <div class="cart-img-wrap">
-        <img src="${esc(p.gambar || "")}" onerror="this.src='https://picsum.photos/seed/${esc(p.id)}/600/400'">
-        ${d > 0 ? `<span class="badge-disc">-${d}%</span>` : ""}
-      </div>
-      <div style="flex:1"><b>${esc(p.nama)}</b><br><small>${esc(p.kategori || "")}</small><div class="cart-prices">${Number(p.harga_sebelum || 0) > 0 ? `<span class="price-old">${fmtRM(p.harga_sebelum)}</span>` : ""}${Number(p.harga_selepas || 0) > 0 ? `<span class="price-new">${fmtRM(p.harga_selepas)}</span>` : ""}</div></div>
+      <img src="${esc(p.gambar || "")}" onerror="this.src='https://picsum.photos/seed/${esc(p.id)}/600/400'">
+      <div style="flex:1"><b>${esc(p.nama)}</b><br><small>${esc(p.kategori || "")}</small>${harga}</div>
       <button class="icon-btn" data-del="${esc(p.id)}" title="Buang">🗑️</button>
     </div>`;
   }).join("") : '<p class="empty">Bakul kosong. Tambah produk dari Home.</p>';

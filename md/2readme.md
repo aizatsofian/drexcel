@@ -247,3 +247,18 @@ Aliran uji: `GET /api/data` (12 produk, tiada `harga`/`siteName`/`themeColor`, t
 - **Local:** 12 fail `uploads/` tidak dirujuk data (1.7MB — 6 duplikat hash tepat + 6 orphan preview-lalu-Batal) dipadam. `sys/data.json` sah (96 produk). `data.xlsx` dikekalkan.
 - **Repo:** 8 fail tidak dirujuk website dipadam (commit `4b99c03`): 5 PNG di root + 3 PNG ujian `images/uploads/`. `uploads/1791815152_2db55121.jpg` DIKEKALKAN — yatim-piatu selepas repair tetapi diperlukan jika rollback ke backup Seksyen 17.
 - **Tiada redeploy:** fail dibuang tidak pernah masuk `dist` (build hanya salin index/sys/js/image/uploads), jadi deployment live tidak berubah.
+
+## 20. Fasa 8 — Refresh style + butang WA terapung (local sahaja, BELUM deploy)
+
+- **Skop jawapan pengguna:** refresh penuh; mesej + senarai bakul; butang di public sahaja (sembunyi di Tetapan); ikon SVG sama seperti grid Socmed. Kerja di local G: sahaja — **jangan deploy, jangan push** sehingga disuruh.
+- **style.css refresh penuh:** token baharu (`--theme:#16a34a`, `--theme-dark:#14532d`, hijau lembut; `--wa:#25D366`), radius 16px + shadow berlapis, hover lift (desktop sahaja), butang gradient + active scale, bottom nav blur + pill aktif, `.home-head` sticky, animasi `fadeUp`, `focus-visible` ring, `prefers-reduced-motion`. Tiada class/ID diganti nama — semua hook JS dikekalkan.
+- **Butang terapung:** `#waFloat` dalam `index.html` (ikon diisi JS dari `SOCMED_SVG.whatsapp`), CSS `.wa-float` bulatan 58px bawah-kanan atas nav (`z-index:40`). `updateWaFloat()` sorok di `tetapan` atau jika nombor tiada; dipanggil dari `go()` + `reloadAll()`. Klik → `openWaFloat()`: mesej `Assalamualaikum Dr Excel. saya nak sistem ... ` + senarai bakul (format sama checkout) jika berisi, `API.track("whatsapp")`, buka `wa.me/<settings.whatsapp>`.
+- **Ujian local:** `node --check` app/admin OK, `py_compile` OK, server `py/server.py` + curl: waFloat/CSS/tema/fungsi/mesej ada, `/api/data` 96 produk. Belum uji: browser interaktif, preview remote, production deploy.
+
+## 21. Bakul melintang + split export (local sahaja, BELUM deploy)
+
+- **Skop jawapan pengguna:** diskaun keluar dari gambar ke row harga; kotak jumlah melintang; logout atas Tetapan; row1 Export Data|Export Lain, row2 Export Analisis|Import; Export Data = Produk+Kategori; Export Lain = Testimoni–Tetapan; import separa gabung. Local sahaja — **jangan deploy, jangan push**.
+- **Bakul (`js/app.js` renderCart + CSS):** badge `-61%` dalam gambar dibuang (img polos); `.cart-prices` sebaris `sebelum (potong) | -% | selepas`; `.cart-total-right` melintang kanan (ubah CSS `column`→`row`). Tiada kiraan berubah.
+- **Tetapan (`index.html`):** `#logoutBtn` pindah atas sekali (id kekal, binding admin.js tidak berubah); kotak Data row1 `exportDataBtn|exportLainBtn`, row2 `exportAnaBtn|importBtn`.
+- **Backup (`js/backup.js`):** pecah builder (`buildDataWorkbook` 2 sheet, baharu `buildLainWorkbook` 4 sheet + handler `lain-website-*.xlsx`); `parseContent` separa (sheet tiada → null); `parseWorkbook` tidak lagi wajib 6 sheet; handler import gabung per-bahagian + skop dinamakan dalam `confirmDialog`.
+- **Ujian local:** `node --check` backup/app OK; harness stub (`test-split-backup.mjs`, C: temp): split tepat, round-trip penuh 96/8, separa null betul, gabung kekalkan semasa — SEMUA LULUS; server + curl: logout atas/row1/row2 ada, tiada `badge-disc` dalam cart, total row melintang. Belum uji: browser + SheetJS sebenar, preview/production.

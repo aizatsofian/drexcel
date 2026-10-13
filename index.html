@@ -89,7 +89,8 @@
 
   <!-- ADMIN: TETAPAN -->
   <section id="page-tetapan" class="page admin-only">
-    <div class="card pad">
+    <button id="logoutBtn" class="btn block" style="margin-top:0">Logout</button>
+    <div class="card pad" style="margin-top:10px">
       <h3 style="margin:0 0 8px">Website</h3>
       <div class="row">
         <input id="sWhatsapp" placeholder="Nombor WhatsApp 601...">
@@ -144,13 +145,13 @@
       <h3 style="margin:0 0 8px">Data</h3>
       <div class="row">
         <button id="exportDataBtn" class="btn primary">Export Data</button>
-        <button id="exportAnaBtn" class="btn primary">Export Analisis</button>
+        <button id="exportLainBtn" class="btn primary">Export Lain</button>
       </div>
       <div class="row" style="margin-top:8px">
-        <button id="importBtn" class="btn block">Import</button>
+        <button id="exportAnaBtn" class="btn primary">Export Analisis</button>
+        <button id="importBtn" class="btn">Import</button>
         <input id="importFile" type="file" accept=".xlsx,.xls" class="hidden">
       </div>
-      <button id="logoutBtn" class="btn block">Logout</button>
     </div>
   </section>
 </main>
@@ -164,6 +165,9 @@
   <button data-page="socmed" class="nav-btn"><span class="ico">🔗</span><span>Socmed</span></button>
   <button data-page="tetapan" class="nav-btn admin-only hidden"><span class="ico">⚙️</span><span>Tetapan</span></button>
 </nav>
+
+<!-- Butang terapung WhatsApp (ikon diisi JS dari SOCMED_SVG) -->
+<button id="waFloat" class="wa-float hidden" title="WhatsApp Dr Excel" aria-label="WhatsApp Dr Excel"></button>
 
 <!-- Modal login -->
 <div id="loginModal" class="modal hidden">
