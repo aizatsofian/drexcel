@@ -33,15 +33,31 @@
 
   <!-- BAKUL -->
   <section id="page-bakul" class="page">
-    <div id="cartList"></div>
-    <div id="cartTotal" class="card pad hidden" style="margin-top:10px"></div>
-    <div class="row">
-      <button id="clearCartBtn" class="btn block">Empty</button>
-      <button id="checkoutBtn" class="btn primary block">Checkout</button>
+    <div class="card pad" id="infoCard" style="margin-top:10px">
+      <input id="coNama" placeholder="Nama">
+      <div class="row" style="margin-top:6px">
+        <input id="coWasap" placeholder="No whatsapp">
+        <input id="coEmail" type="email" placeholder="Email">
+      </div>
+      <input id="coSocmed" placeholder="Nama socmed (optional)" style="margin-top:6px">
+      <textarea id="notaText" rows="3" placeholder="Nota (nak custom, demo etc)" style="margin-top:6px"></textarea>
     </div>
-    <div class="card pad" id="notaCard" style="margin-top:10px">
-      <h3 style="margin:0 0 8px">Nota (nak custom, demo etc)</h3>
-      <textarea id="notaText" rows="3" placeholder="cth: nak demo, nak custom..."></textarea>
+    <div class="row" id="bayarBtns" style="margin-top:10px">
+      <button id="bayarTransferBtn" class="btn">Transfer</button>
+      <button id="bayarQrBankBtn" class="btn">QR Bank</button>
+      <button id="bayarQrTngBtn" class="btn">QR TnG</button>
+    </div>
+    <div class="row" id="bayarStatusRow" style="margin-top:10px">
+      <label class="radio-pill"><input type="radio" name="bayarStatus" id="bayarDah" value="dah"> <span>Dah bayar</span></label>
+      <label class="radio-pill"><input type="radio" name="bayarStatus" id="bayarBelum" value="belum" checked> <span>Belum bayar</span></label>
+    </div>
+    <div id="cartList" style="margin-top:10px"></div>
+    <div class="card pad hidden" id="jumlahCard" style="margin-top:10px">
+      <div id="cartTotal"></div>
+      <div class="row" style="margin-top:8px">
+        <button id="clearCartBtn" class="btn block">Empty</button>
+        <button id="hantarBtn" class="btn primary block">Hantar</button>
+      </div>
     </div>
     <div class="card pad" id="stepCard" style="margin-top:10px">
       <div class="row" style="justify-content:space-between;align-items:center">
@@ -274,24 +290,12 @@
   </div>
 </div>
 
-<!-- Modal checkout -->
-<div id="checkoutModal" class="modal hidden">
-  <div class="modal-card wide">
-    <h3>Checkout</h3>
-    <div class="card pad">
-      <input id="coNama" placeholder="Nama">
-      <input id="coWasap" placeholder="No whatsapp" style="margin-top:6px">
-      <input id="coEmail" type="email" placeholder="Email" style="margin-top:6px">
-      <input id="coSocmed" placeholder="Nama socmed (optional)" style="margin-top:6px">
-    </div>
-    <div class="card pad" id="coBankBox"></div>
-    <div class="card pad" id="coQrBox"></div>
-    <label class="row" style="align-items:center;gap:8px">
-      <input id="coPaid" type="checkbox" style="width:auto"> <span>Saya dah bayar</span>
-    </label>
+<!-- Modal bayar (popup dari butang Transfer / QR Bank / QR TnG di Bakul) -->
+<div id="bayarModal" class="modal hidden">
+  <div class="modal-card">
+    <div id="bayarBody"></div>
     <div class="row">
-      <button id="coCancelBtn" class="btn">Batal</button>
-      <button id="coSendBtn" class="btn primary">Hantar</button>
+      <button id="bayarTutupBtn" class="btn block">Tutup</button>
     </div>
   </div>
 </div>

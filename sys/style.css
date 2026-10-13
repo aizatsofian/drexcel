@@ -170,6 +170,11 @@ button { font-family: inherit; }
 }
 .announce-close:hover { background: rgba(66, 32, 6, .3); }
 
+/* pilihan status bayar di Bakul: radio 2 pilihan */
+.radio-pill { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; font-size: .85rem; font-weight: 600; cursor: pointer; box-shadow: var(--sh); }
+.radio-pill input { width: auto; accent-color: var(--theme); }
+.radio-pill:has(input:checked) { border-color: var(--theme); background: var(--theme-soft); color: var(--theme-dark); }
+
 /* carta Top 10 melintang */
 .hbar { display: flex; gap: 8px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: var(--r-s); padding: 7px 10px; margin-top: 6px; }
 .hbar b.num { background: linear-gradient(135deg, var(--theme), #1e40af); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: .75rem; flex: 0 0 auto; }

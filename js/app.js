@@ -73,12 +73,14 @@ async function init() {
 
   document.getElementById("hSearch").addEventListener("input", (e) => { S.kq = e.target.value.toLowerCase(); renderHome(); });
   document.getElementById("hCat").addEventListener("change", (e) => { S.kcat = e.target.value; renderHome(); });
-  document.getElementById("checkoutBtn").addEventListener("click", checkout);
-  document.getElementById("coCancelBtn").addEventListener("click", () => document.getElementById("checkoutModal").classList.add("hidden"));
-  document.getElementById("coSendBtn").addEventListener("click", sendCheckout);
-  document.getElementById("checkoutModal").addEventListener("click", (e) => {
-    if (e.target.id === "checkoutModal") e.target.classList.add("hidden");
+  document.getElementById("hantarBtn").addEventListener("click", sendHantar);
+  document.getElementById("bayarTutupBtn").addEventListener("click", () => document.getElementById("bayarModal").classList.add("hidden"));
+  document.getElementById("bayarModal").addEventListener("click", (e) => {
+    if (e.target.id === "bayarModal") e.target.classList.add("hidden");
   });
+  document.getElementById("bayarTransferBtn").addEventListener("click", () => openBayar("transfer"));
+  document.getElementById("bayarQrBankBtn").addEventListener("click", () => openBayar("qrbank"));
+  document.getElementById("bayarQrTngBtn").addEventListener("click", () => openBayar("qrtng"));
   document.getElementById("sijilModal").addEventListener("click", (e) => {
     if (e.target.id === "sijilModal") e.target.classList.add("hidden");
   });
@@ -412,14 +414,15 @@ function renderCart() {
   }));
   // Kotak jumlah: total sebelum | % | total selepas, angka ke kanan
   const totalBox = document.getElementById("cartTotal");
-  if (totalBox) {
-    if (!items.length) { totalBox.classList.add("hidden"); totalBox.innerHTML = ""; }
+  const jumlahCard = document.getElementById("jumlahCard");
+  if (totalBox && jumlahCard) {
+    if (!items.length) { jumlahCard.classList.add("hidden"); totalBox.innerHTML = ""; }
     else {
       const totA = items.reduce((a, p) => a + Number(p.harga_sebelum || 0), 0);
       const totB = items.reduce((a, p) => a + Number(p.harga_selepas || 0), 0);
       const d = (totA > 0 && totB > 0 && totB < totA) ? Math.round(((totA - totB) / totA) * 100) : 0;
       const hasPrice = totA > 0 || totB > 0;
-      totalBox.classList.remove("hidden");
+      jumlahCard.classList.remove("hidden");
       totalBox.innerHTML = hasPrice
         ? `<div class="cart-total-right"><span class="price-old">${totA > 0 ? fmtRM(totA) : "-"}</span>${d > 0 ? `<span class="price-disc">-${d}%</span>` : ""}<b class="price-new">${totB > 0 ? fmtRM(totB) : "-"}</b></div>`
         : `<div class="cart-total-right"><small>Tiada harga ditetapkan</small></div>`;
@@ -432,29 +435,29 @@ function renderStep() {
   const box = document.getElementById("stepContent");
   if (box) box.textContent = st.steps || "Langkah mendapatkan sistem akan dipaparkan di sini.";
 }
-function checkout() {
-  const items = S.cart.map(findP).filter(Boolean);
-  if (!items.length) { toast("Bakul kosong", "err"); return; }
-  const st = (S.data.settings) || {};
-  const bankBox = document.getElementById("coBankBox");
-  if (bankBox) bankBox.innerHTML = `<b>${esc(st.bank_nama || "Bank")}</b><br><small>No akaun: ${esc(st.bank_no || "-")}<br>Penama: ${esc(st.bank_penama || "-")}</small>`;
-  const qrBox = document.getElementById("coQrBox");
-  if (qrBox) {
-    qrBox.innerHTML = `<div class="qr-row">`
-      + (st.qr_bank ? `<figure><img src="${esc(st.qr_bank)}" alt="QR bank"><figcaption><small>QR Bank</small></figcaption></figure>` : "")
-      + (st.qr_tng ? `<figure><img src="${esc(st.qr_tng)}" alt="QR TnG"><figcaption><small>QR TnG</small></figcaption></figure>` : "")
-      + ((!st.qr_bank && !st.qr_tng) ? `<small>QR bayaran belum ditetapkan.</small>` : "") + `</div>`;
+// Popup bayar di Bakul: transfer = detail bank, qrbak/qrtng = imej QR
+function openBayar(kind) {
+  const st = (S.data && S.data.settings) || {};
+  const body = document.getElementById("bayarBody");
+  if (kind === "transfer") {
+    if (!st.bank_nama && !st.bank_no) { toast("Maklumat bank belum ditetapkan", "err"); return; }
+    body.innerHTML = `<b>${esc(st.bank_nama || "Bank")}</b><br><small>No akaun: ${esc(st.bank_no || "-")}<br>Penama: ${esc(st.bank_penama || "-")}</small>`;
+  } else {
+    const src = kind === "qrbank" ? st.qr_bank : st.qr_tng;
+    const label = kind === "qrbank" ? "QR Bank" : "QR TnG";
+    if (!src) { toast(label + " belum ditetapkan", "err"); return; }
+    body.innerHTML = `<img src="${esc(src)}" alt="${label}" style="width:100%;border-radius:12px;border:1px solid var(--line)">`;
   }
-  document.getElementById("checkoutModal").classList.remove("hidden");
+  document.getElementById("bayarModal").classList.remove("hidden");
 }
-function sendCheckout() {
+function sendHantar() {
   const items = S.cart.map(findP).filter(Boolean);
   if (!items.length) { toast("Bakul kosong", "err"); return; }
   const nama = document.getElementById("coNama").value.trim();
   const wasap = document.getElementById("coWasap").value.trim();
   const email = document.getElementById("coEmail").value.trim();
   const socmed = document.getElementById("coSocmed").value.trim();
-  const paid = document.getElementById("coPaid").checked;
+  const paid = document.getElementById("bayarDah").checked;
   let nota = "";
   try { nota = ((document.getElementById("notaText") && document.getElementById("notaText").value) || localStorage.getItem("nota") || "").trim(); } catch { nota = (document.getElementById("notaText") && document.getElementById("notaText").value.trim()) || ""; }
   if (!nama || !wasap || !email) { toast("Isi nama, no whatsapp dan email", "err"); return; }
@@ -466,7 +469,6 @@ function sendCheckout() {
   });
   const msg = `nama : ${nama}\nno whatsapp : ${wasap}\nemail : ${email}\nnama socmed : ${socmed || "-"}\nstatus : ${paid ? "saya dah bayar" : "belum bayar"}${nota ? `\nnota : ${nota}` : ""}\n\n${lines.join("\n")}\n\nini bukti bayaran saya`;
   API.track("whatsapp");
-  document.getElementById("checkoutModal").classList.add("hidden");
   window.open(`https://wa.me/${no}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
