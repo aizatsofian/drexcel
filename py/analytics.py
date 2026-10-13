@@ -114,6 +114,7 @@ def public_data(data):
             "logo": st.get("logo", ""),
             "whatsapp": st.get("whatsapp", ""),
             "header": st.get("header", ""),
+            "pengumuman": st.get("pengumuman", ""),
             "bank_nama": st.get("bank_nama", ""),
             "bank_no": st.get("bank_no", ""),
             "bank_penama": st.get("bank_penama", ""),

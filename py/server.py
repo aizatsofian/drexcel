@@ -264,7 +264,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_admin():
                 return
             body = self.read_json()
-            allowed = {"logo", "whatsapp", "header", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps"}
+            allowed = {"logo", "whatsapp", "header", "pengumuman", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps"}
             profile_allowed = {"nama", "biodata", "kepakaran", "penerangan", "gambar", "link", "sijil"}
             with _lock:
                 old_data = load_data()

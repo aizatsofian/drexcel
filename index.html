@@ -7,6 +7,10 @@
 <link rel="stylesheet" href="sys/style.css">
 </head>
 <body>
+<div id="announceBar" class="announce-bar hidden" title="WhatsApp Dr Excel">
+  <span id="announceText"></span>
+  <button id="announceClose" class="announce-close" title="Tutup" aria-label="Tutup pengumuman">✕</button>
+</div>
 <main id="view">
   <!-- HOME -->
   <section id="page-home" class="page active">
@@ -101,6 +105,7 @@
         <button id="sLogoUp" class="btn">Upload</button>
         <input id="sLogoFile" type="file" accept=".png,.jpg,.jpeg,.webp,.gif" class="hidden">
       </div>
+      <input id="sPengumuman" placeholder="Teks bar pengumuman (kosong = sorok)" style="margin-top:8px">
       <button id="webSaveBtn" class="btn primary block">Simpan Website</button>
     </div>
     <div class="card pad" style="margin-top:10px">
@@ -131,6 +136,8 @@
     <div class="card pad" style="margin-top:10px">
       <h3 style="margin:0 0 8px">Analisis</h3>
       <div id="miniChart"></div>
+      <h4 style="margin:12px 0 8px">Top 10 produk paling diklik</h4>
+      <div id="topChart"></div>
       <button id="miniRefresh" class="btn block">Muat Semula Carta</button>
     </div>
     <div class="card pad" style="margin-top:10px">

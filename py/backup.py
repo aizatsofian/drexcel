@@ -7,7 +7,7 @@ import secrets
 from analytics import VALID_TRACK
 
 SOCMED_KEYS = ("whatsapp", "tiktok", "threads", "facebook", "instagram", "linkedin", "youtube", "telegram", "other")
-SETTING_KEYS = ("logo", "whatsapp", "header", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps")
+SETTING_KEYS = ("logo", "whatsapp", "header", "pengumuman", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps")
 PROFILE_KEYS = ("nama", "biodata", "kepakaran", "penerangan", "gambar", "link", "sijil")
 
 

@@ -99,7 +99,7 @@ export async function handle(request, env, ctx) {
         const rows=await stmt(db,"SELECT key,value FROM documents WHERE key IN ('profile','settings')").all();
         for(const r of rows.results||[]) { try { oldDocs[r.key]=JSON.parse(r.value||'{}'); } catch {} }
       } catch {}
-      const specs={settings:['logo','whatsapp','header','bank_nama','bank_no','bank_penama','qr_bank','qr_tng','steps'],profile:['nama','biodata','kepakaran','penerangan','gambar','link','sijil'],socials:socialKeys};
+      const specs={settings:['logo','whatsapp','header','pengumuman','bank_nama','bank_no','bank_penama','qr_bank','qr_tng','steps'],profile:['nama','biodata','kepakaran','penerangan','gambar','link','sijil'],socials:socialKeys};
       for(const [key,allowed] of Object.entries(specs)) {
         const input=key==='settings'?b:b[key];if(!object(input)) continue;
         const patch={};for(const k of allowed) if(k in input) {

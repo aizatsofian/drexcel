@@ -1,6 +1,6 @@
 export const tracks = ['visit', 'product', 'demo', 'whatsapp'];
 export const socialKeys = ['whatsapp', 'tiktok', 'threads', 'facebook', 'instagram', 'linkedin', 'youtube', 'telegram', 'other'];
-export const settingKeys = ['logo', 'whatsapp', 'header', 'bank_nama', 'bank_no', 'bank_penama', 'qr_bank', 'qr_tng', 'steps'];
+export const settingKeys = ['logo', 'whatsapp', 'header', 'pengumuman', 'bank_nama', 'bank_no', 'bank_penama', 'qr_bank', 'qr_tng', 'steps'];
 export const profileKeys = { nama: 120, biodata: 500, penerangan: 2000, gambar: 500, link: 500 };
 export const price = (v) => {
   const n = Number(v);
@@ -47,7 +47,7 @@ export function cleanImport(body) {
   if (!Array.isArray(sijil) && typeof sijil !== 'string') throw new Error('sijil_tidak_sah');
   clean.profile.sijil = (typeof sijil === 'string' ? sijil.split(';') : sijil).map(x => text(x, 500)).filter(Boolean).slice(0, 20);
   clean.socials = Object.fromEntries(socialKeys.map(k => [k, text(body.socials[k])]));
-  clean.settings = Object.fromEntries(['logo', 'whatsapp', 'header', 'bank_nama', 'bank_no', 'bank_penama', 'qr_bank', 'qr_tng', 'steps'].map(k => [k, text(body.settings[k], k === 'steps' ? 5000 : 500)]));
+  clean.settings = Object.fromEntries(['logo', 'whatsapp', 'header', 'pengumuman', 'bank_nama', 'bank_no', 'bank_penama', 'qr_bank', 'qr_tng', 'steps'].map(k => [k, text(body.settings[k], k === 'steps' ? 5000 : 500)]));
   const real = body.analytics.real || {}, demo = body.analytics.demo || {};
   const map = v => Object.fromEntries(Object.entries(object(v) ? v : {}).map(([k,n])=>[text(k,64),Math.max(0,integer(n))]));
   clean.analytics = { real: {

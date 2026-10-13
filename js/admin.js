@@ -289,6 +289,7 @@ function fillSettingsForm() {
   const st = S.data.settings || {};
   const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v || ""; };
   set("sWhatsapp", st.whatsapp); set("sHeader", st.header); set("sLogo", st.logo);
+  set("sPengumuman", st.pengumuman);
   set("bBankNama", st.bank_nama); set("bBankNo", st.bank_no); set("bBankPenama", st.bank_penama);
   set("bQrBank", st.qr_bank); set("bQrTng", st.qr_tng);
   set("sAdminUser", (S.data.admin && S.data.admin.username) || "");
@@ -310,6 +311,7 @@ document.getElementById("webSaveBtn").addEventListener("click", async () => {
     whatsapp: document.getElementById("sWhatsapp").value.trim(),
     header: document.getElementById("sHeader").value.trim(),
     logo: document.getElementById("sLogo").value.trim(),
+    pengumuman: document.getElementById("sPengumuman").value.trim(),
   };
   showLoader(true);
   const r = await API.saveSettings(body);

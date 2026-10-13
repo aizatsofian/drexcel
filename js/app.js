@@ -55,6 +55,15 @@ function openWaFloat() {
   API.track("whatsapp");
   window.open(`https://wa.me/${no}?text=${encodeURIComponent(msg)}`, "_blank");
 }
+// Bar pengumuman: mesej ikut teks bar semasa ("saya nak <teks>")
+function openAnnounceWa() {
+  const no = (S.data && S.data.settings && S.data.settings.whatsapp) || "";
+  if (!no) { toast("Nombor WhatsApp belum ditetapkan", "err"); return; }
+  const t = ((S.data && S.data.settings && S.data.settings.pengumuman) || "").trim();
+  if (!t) { toast("Tiada pengumuman ditetapkan", "err"); return; }
+  API.track("whatsapp");
+  window.open(`https://wa.me/${no}?text=${encodeURIComponent("saya nak " + t)}`, "_blank");
+}
 
 async function init() {
   updateBadge();
@@ -98,6 +107,18 @@ async function init() {
     try { waBtn.innerHTML = SOCMED_SVG.whatsapp || ""; } catch { waBtn.textContent = "WA"; }
     waBtn.addEventListener("click", openWaFloat);
   }
+  // Bar pengumuman: klik buka WA dengan mesej ikut teks bar, X tutup sesi semasa
+  const annBar = document.getElementById("announceBar");
+  if (annBar) annBar.addEventListener("click", (e) => {
+    if (e.target && e.target.id === "announceClose") return;
+    openAnnounceWa();
+  });
+  const annClose = document.getElementById("announceClose");
+  if (annClose) annClose.addEventListener("click", (e) => {
+    e.stopPropagation();
+    try { sessionStorage.setItem("announceHide", "1"); } catch {}
+    document.getElementById("announceBar").classList.add("hidden");
+  });
   // Nota bakul: local sahaja (localStorage["nota"]), dihantar dalam mesej WA checkout
   try {
     const savedNota = localStorage.getItem("nota") || "";
@@ -131,6 +152,20 @@ function applyTheme() {
   const st = (S.data && S.data.settings) || {};
   const t = document.getElementById("homeTitle");
   if (t) t.textContent = st.header || "Koleksi Dr Excel";
+  renderAnnounce();
+}
+// Bar pengumuman: teks dari settings.pengumuman, kosong = sorok.
+// Klik bar buka WA, X tutup untuk sesi semasa sahaja.
+function renderAnnounce() {
+  const bar = document.getElementById("announceBar");
+  const txt = document.getElementById("announceText");
+  if (!bar || !txt) return;
+  const v = ((S.data && S.data.settings && S.data.settings.pengumuman) || "").trim();
+  let dismissed = false;
+  try { dismissed = sessionStorage.getItem("announceHide") === "1"; } catch {}
+  if (!v || dismissed) { bar.classList.add("hidden"); return; }
+  if (txt.textContent !== v) txt.textContent = v;
+  bar.classList.remove("hidden");
 }
 function findP(id) { return (S.data.products || []).find((p) => p.id === id); }
 

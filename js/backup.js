@@ -9,7 +9,7 @@ Format sheet (wajib sama untuk import):
   Testimoni: id, nama, rating, komen, link
   Profil: nama, biodata, kepakaran (pisah ";"), penerangan, gambar, link, sijil (pisah ";")
   Socmed: platform, url
-  Tetapan: tetapan, nilai (logo, whatsapp, header, bank_nama, bank_no, bank_penama, qr_bank, qr_tng, steps)
+  Tetapan: tetapan, nilai (logo, whatsapp, header, pengumuman, bank_nama, bank_no, bank_penama, qr_bank, qr_tng, steps)
   Ringkasan: metrik, nilai (visitors, whatsapp_clicks, demo_*)
   KlikProduk / KlikDemo: produk, klik
   Events: t, jenis, produk
@@ -18,7 +18,7 @@ Format sheet (wajib sama untuk import):
 Kredensial admin tidak diexport dan tidak disentuh import.
 */
 const SOCMED_ORDER = ["whatsapp", "tiktok", "telegram", "threads", "facebook", "instagram", "linkedin", "youtube", "other"];
-const SETTING_ORDER = ["logo", "whatsapp", "header", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps"];
+const SETTING_ORDER = ["logo", "whatsapp", "header", "pengumuman", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps"];
 const DATA_SHEETS = ["Produk", "Kategori", "Testimoni", "Profil", "Socmed", "Tetapan"];
 const ANA_SHEETS = ["Ringkasan", "KlikProduk", "KlikDemo", "Events", "DemoHarian", "DemoTop"];
 
