@@ -207,7 +207,7 @@ function productCard(p) {
         <div class="card-actions">
           <button class="btn" data-act="demo">Video</button>
           <button class="btn" data-act="demowa">Demo</button>
-          <button class="btn primary" data-act="bakul">Cart</button>
+          <button class="btn primary" data-act="bakul">nak</button>
         </div>
       </div>
     </div>`;
@@ -322,7 +322,7 @@ function openDetail(id) {
     <div class="row" id="dViewActions">
       <button class="btn" id="dDemo">Video</button>
       <button class="btn" id="dDemoWa">Demo</button>
-      <button class="btn primary" id="dBakul">Cart</button>
+      <button class="btn primary" id="dBakul">nak</button>
     </div>
     ${isAdmin ? `
     <div class="row" style="margin-top:8px">
