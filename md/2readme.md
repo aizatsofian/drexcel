@@ -224,3 +224,13 @@ Aliran uji: `GET /api/data` (12 produk, tiada `harga`/`siteName`/`themeColor`, t
 - **Verifikasi preview:** HTML ada `#notaCard/#notaText`, `js/app.js` ada `notaText`, `GET /api/data` ada `harga_sebelum/harga_selepas`, kiraan 107 produk kekal.
 - **Verifikasi production (read-only, tiada tulis DB):** HTML ada notaCard/notaText, produk pertama `p01` ada kedua-dua medan harga, kiraan 107 kekal. Tiada reseed/import overwrite production.
 - **Prosedur dipakai:** sync terpilih G: → staging `drexcel-publish` (18 ubah + 1 baharu, tanpa gambar/private), `npm ci` di disk C:, migrasi preview → deploy preview → sahkan → migrasi production → deploy production → sahkan → push main. Deploy manual Wrangler 4.149.0, bukan push-trigger.
+
+## 17. Repair data — website ikut local (13 Okt 2026)
+
+- **Punca:** `data.xlsx` (96 produk, katalog lama berharga) diimport ke local, `sys/data.json` local berubah 107→96 produk dan tidak lagi sama dengan website (production 107 produk, katalog baharu tanpa harga).
+- **Keputusan pengguna (disahkan 2x):** website ikut local + skop semua kecuali admin + `data.xlsx` dikekalkan. Tindakan destruktif ini direkod di sini.
+- **Backup dahulu:** export penuh production (admin data + analytics) ke `C:\Users\aizat\AppData\Local\Temp\opencode\prod-backup-2026-10-13-04-45-33.json` (private, bukan dalam repo). Gunakan fail ini untuk rollback jika perlu.
+- **Diff sebelum tulis:** padam `p97`–`p107` (11 produk), ganti 96 produk (nama/kategori/demo/likes berbeza; local ada `harga_sebelum/selepas`), settings/profil/socmed berbeza, analytics 25→19 pelawat. Kategori 12=12 sama, testimoni 8=8 sama.
+- **Baiki kredensial:** `.wrangler/production-admin.json` di root G: lapuk (password 3 aksara, login 401); disegerakkan semula dari salinan C: yang sah (32 aksara). Jangan edit manual.
+- **Pelaksanaan:** pra-validasi `cleanImport()` local OK (96/8) → `POST /api/admin/import` ke production 200 `{"ok":true}` → verifikasi `GET /api/data` 96/12/8, `p01` local + harga 210/90 → login admin selepas import OK (import tidak sentuh admin). Skrip sementara (bukan repo): `prod-backup-diff.mjs`, `prod-import-local.mjs` dalam folder temp C:.
+- **Nota:** data local dan website kini sama (96 produk). `data.xlsx` dikekalkan atas permintaan — import semula fail itu akan mengulangi mismatch; arkibkan jika tidak diperlukan lagi.
