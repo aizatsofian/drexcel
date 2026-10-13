@@ -241,3 +241,9 @@ Aliran uji: `GET /api/data` (12 produk, tiada `harga`/`siteName`/`themeColor`, t
 - **Baiki (diluluskan pengguna):** salin 96 PNG yang dirujuk katalog dari `uploads/` local ke repo (termasuk timpa 5 konflik dengan versi local, fail lain cth `1791815152_2db55121.jpg` dikekalkan), commit `c3d9593`, push main, rebuild + redeploy production (`9a2b5b63`).
 - **Verifikasi live:** `uploads/1 (1)/(10)/(50)/(96).png` semua `image/png` dengan saiz tepat (161047/144633/209599/197629 bytes).
 - **Susulan menu Tentang:** gambar profil + 16 sijil masih pecah kerana sync pertama hanya salin 96 gambar produk — 1 profil + 16 sijil + 2 QR (`qr_bank/qr_tng`) tiada dalam repo. Dibaiki sama cara: salin 19 fail, commit `d624dd3`, redeploy production (`3086aa3d`), semakan live `image/png` + `image/jpeg` tepat. `logo=uploads/logo.jpg` tiada di local dan repo (logo fallback teks, bukan isu repair).
+
+## 19. Audit & buang fail tidak digunakan (13 Okt 2026)
+
+- **Local:** 12 fail `uploads/` tidak dirujuk data (1.7MB — 6 duplikat hash tepat + 6 orphan preview-lalu-Batal) dipadam. `sys/data.json` sah (96 produk). `data.xlsx` dikekalkan.
+- **Repo:** 8 fail tidak dirujuk website dipadam (commit `4b99c03`): 5 PNG di root + 3 PNG ujian `images/uploads/`. `uploads/1791815152_2db55121.jpg` DIKEKALKAN — yatim-piatu selepas repair tetapi diperlukan jika rollback ke backup Seksyen 17.
+- **Tiada redeploy:** fail dibuang tidak pernah masuk `dist` (build hanya salin index/sys/js/image/uploads), jadi deployment live tidak berubah.
