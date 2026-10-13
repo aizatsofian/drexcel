@@ -234,3 +234,9 @@ Aliran uji: `GET /api/data` (12 produk, tiada `harga`/`siteName`/`themeColor`, t
 - **Baiki kredensial:** `.wrangler/production-admin.json` di root G: lapuk (password 3 aksara, login 401); disegerakkan semula dari salinan C: yang sah (32 aksara). Jangan edit manual.
 - **Pelaksanaan:** pra-validasi `cleanImport()` local OK (96/8) → `POST /api/admin/import` ke production 200 `{"ok":true}` → verifikasi `GET /api/data` 96/12/8, `p01` local + harga 210/90 → login admin selepas import OK (import tidak sentuh admin). Skrip sementara (bukan repo): `prod-backup-diff.mjs`, `prod-import-local.mjs` dalam folder temp C:.
 - **Nota:** data local dan website kini sama (96 produk). `data.xlsx` dikekalkan atas permintaan — import semula fail itu akan mengulangi mismatch; arkibkan jika tidak diperlukan lagi.
+
+## 18. Sync gambar uploads/ ke website (13 Okt 2026)
+
+- **Kenapa gambar tak ikut:** `/api/admin/import` hanya pindah data JSON — medan `gambar` cuma teks laluan, fail binari tidak dihantar. Sync kod Fasa 7 pula sengaja salin kod sahaja (gambar repo dikekalkan). Website hidang gambar sebagai fail statik dari repo ketika deploy — jadi 91/96 fail tiada (lagi 5 nama sama tapi kandungan lain), dan URL tiada pula fallback ke `index.html` (HTML 200, bukan PNG) → gambar produk pecah/salah.
+- **Baiki (diluluskan pengguna):** salin 96 PNG yang dirujuk katalog dari `uploads/` local ke repo (termasuk timpa 5 konflik dengan versi local, fail lain cth `1791815152_2db55121.jpg` dikekalkan), commit `c3d9593`, push main, rebuild + redeploy production (`9a2b5b63`).
+- **Verifikasi live:** `uploads/1 (1)/(10)/(50)/(96).png` semua `image/png` dengan saiz tepat (161047/144633/209599/197629 bytes).
