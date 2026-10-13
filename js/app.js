@@ -206,6 +206,7 @@ function productCard(p) {
         ${priceRowHTML(p)}
         <div class="card-actions">
           <button class="btn" data-act="demo">Video</button>
+          <button class="btn" data-act="demowa">Demo</button>
           <button class="btn primary" data-act="bakul">+ Bakul</button>
         </div>
       </div>
@@ -219,6 +220,7 @@ function bindCards(grid) {
       if (likeEl) { likeProduct(likeEl.dataset.like, likeEl); e.stopPropagation(); return; }
       const act = e.target.dataset && e.target.dataset.act;
       if (act === "demo") { openDemo(id, e); return; }
+      if (act === "demowa") { openDemoWa(id, e); return; }
       if (act === "bakul") { addCart(id); e.stopPropagation(); return; }
       openDetail(id);
     });
@@ -270,6 +272,16 @@ function openDemo(id, e) {
   API.track("demo", id);
   window.open(p.demo, "_blank");
 }
+// Butang Demo di kad/detail: buka WA admin dengan teks "saya nak demo <nama sistem>"
+function openDemoWa(id, e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const p = findP(id);
+  if (!p) { toast("Produk tiada", "err"); return; }
+  const no = (S.data && S.data.settings && S.data.settings.whatsapp) || "";
+  if (!no) { toast("Nombor WhatsApp belum ditetapkan", "err"); return; }
+  API.track("whatsapp");
+  window.open(`https://wa.me/${no}?text=${encodeURIComponent("saya nak demo " + (p.nama || ""))}`, "_blank");
+}
 function addCart(id) {
   if (!S.cart.includes(id)) S.cart.push(id);
   saveCart();
@@ -309,6 +321,7 @@ function openDetail(id) {
     </div>
     <div class="row" id="dViewActions">
       <button class="btn" id="dDemo">Video</button>
+      <button class="btn" id="dDemoWa">Demo</button>
       <button class="btn primary" id="dBakul">+ Bakul</button>
     </div>
     ${isAdmin ? `
@@ -322,6 +335,7 @@ function openDetail(id) {
     </div>` : ""}`;
   document.getElementById("detailModal").classList.remove("hidden");
   document.getElementById("dDemo").addEventListener("click", (e) => openDemo(id, e));
+  document.getElementById("dDemoWa").addEventListener("click", (e) => openDemoWa(id, e));
   document.getElementById("dBakul").addEventListener("click", () => addCart(id));
   const likeEl = document.getElementById("dLike");
   if (likeEl) likeEl.addEventListener("click", () => likeProduct(id, likeEl));
