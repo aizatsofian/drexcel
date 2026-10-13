@@ -175,6 +175,12 @@ button { font-family: inherit; }
 .radio-pill input { width: auto; accent-color: var(--theme); }
 .radio-pill:has(input:checked) { border-color: var(--theme); background: var(--theme-soft); color: var(--theme-dark); }
 
+/* bakul: kotak nota panduan + versi padat */
+#bakulHint { padding: 8px 12px; }
+#bakulHint small { display: block; text-align: center; }
+#infoCard input, #infoCard textarea { padding: 7px 10px; font-size: .85rem; }
+#bayarBtns .btn, #bayarStatusRow .radio-pill { padding: 6px 8px; font-size: .78rem; }
+
 /* carta Top 10 melintang */
 .hbar { display: flex; gap: 8px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: var(--r-s); padding: 7px 10px; margin-top: 6px; }
 .hbar b.num { background: linear-gradient(135deg, var(--theme), #1e40af); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: .75rem; flex: 0 0 auto; }
