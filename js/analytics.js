@@ -1,27 +1,23 @@
-/* Carta mini Tetapan kotak3: garis pelawat harian 30 hari (data sebenar sahaja) */
+/* Carta Analisis Tetapan: garis pelawat harian 30 hari (data sebenar sahaja) */
 document.getElementById("miniRefresh").addEventListener("click", () => loadMiniChart(true));
 
 async function loadMiniChart(force = false) {
   if (typeof LOGGED !== "undefined" && !LOGGED) return;
-  const note = document.getElementById("miniNote");
   const box = document.getElementById("miniChart");
-  if (!note || !box) return;
-  note.textContent = "Memuatkan...";
+  if (!box) return;
+  box.innerHTML = "<p class=\"hint\">Memuatkan...</p>";
   try {
     const r = await API.analytics(force);
-    if (!r || !r.ok) { note.textContent = "Gagal muat carta."; return; }
+    if (!r || !r.ok) { box.innerHTML = "<p class=\"hint\">Gagal muat carta.</p>"; return; }
     const daily = (r.real && r.real.daily) || [];
     if (!daily.length) {
-      note.textContent = "Belum ada data lawatan direkod.";
-      box.innerHTML = "";
+      box.innerHTML = "<p class=\"hint\">Belum ada data lawatan direkod.</p>";
       return;
     }
     const pts = daily.map((d) => ({ label: String(d.tarikh).slice(5), v: Number(d.pelawat || 0) }));
-    const total = pts.reduce((a, x) => a + x.v, 0);
-    note.textContent = `Jumlah pelawat: ${total} (${pts.length} hari terakhir).`;
     box.innerHTML = lineSVG(pts);
   } catch {
-    note.textContent = "Gagal muat carta.";
+    box.innerHTML = "<p class=\"hint\">Gagal muat carta.</p>";
   }
 }
 

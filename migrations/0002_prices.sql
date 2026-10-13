@@ -1,0 +1,2 @@
+ALTER TABLE products ADD COLUMN harga_sebelum REAL NOT NULL DEFAULT 0;
+ALTER TABLE products ADD COLUMN harga_selepas REAL NOT NULL DEFAULT 0;

@@ -6,9 +6,9 @@ import secrets
 
 from analytics import VALID_TRACK
 
-SOCMED_KEYS = ("whatsapp", "tiktok", "threads", "facebook", "instagram", "linkedin", "youtube")
-SETTING_KEYS = ("logo", "whatsapp", "header")
-PROFILE_KEYS = ("nama", "biodata", "kepakaran", "penerangan", "gambar")
+SOCMED_KEYS = ("whatsapp", "tiktok", "threads", "facebook", "instagram", "linkedin", "youtube", "telegram", "other")
+SETTING_KEYS = ("logo", "whatsapp", "header", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps")
+PROFILE_KEYS = ("nama", "biodata", "kepakaran", "penerangan", "gambar", "link", "sijil")
 
 
 def _str(v, cap):
@@ -20,6 +20,16 @@ def _int(v, default=0):
         return int(float(v))
     except (TypeError, ValueError):
         return default
+
+
+def _price(v):
+    try:
+        n = float(v)
+    except (TypeError, ValueError):
+        return 0
+    if n < 0 or n != n:
+        return 0
+    return round(n, 2)
 
 
 def validate_import(body):
@@ -45,6 +55,8 @@ def validate_import(body):
             "kategori": _str(p.get("kategori"), 80),
             "demo": _str(p.get("demo"), 500),
             "likes": max(0, _int(p.get("likes"))),
+            "harga_sebelum": _price(p.get("harga_sebelum")),
+            "harga_selepas": _price(p.get("harga_selepas")),
         })
 
     categories = body["categories"]
@@ -77,12 +89,17 @@ def validate_import(body):
     kep = pr.get("kepakaran", [])
     if isinstance(kep, str):
         kep = [x.strip() for x in kep.split(";") if x.strip()]
+    sij = pr.get("sijil", [])
+    if isinstance(sij, str):
+        sij = [x.strip() for x in sij.split(";") if x.strip()]
     clean_profile = {
         "nama": _str(pr.get("nama"), 120),
         "biodata": _str(pr.get("biodata"), 500),
         "kepakaran": [str(x)[:80] for x in (kep or []) if str(x).strip()][:20],
         "penerangan": _str(pr.get("penerangan"), 2000),
         "gambar": _str(pr.get("gambar"), 500),
+        "link": _str(pr.get("link"), 500),
+        "sijil": [str(x)[:500] for x in (sij or []) if str(x).strip()][:20],
     }
 
     sc = body["socials"]

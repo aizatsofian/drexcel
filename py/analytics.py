@@ -103,6 +103,7 @@ def build_analytics_summary(data):
 
 
 def public_data(data):
+    st = data.get("settings", {})
     return {
         "products": data.get("products", []),
         "categories": data.get("categories", []),
@@ -110,8 +111,14 @@ def public_data(data):
         "profile": data.get("profile", {}),
         "socials": data.get("socials", {}),
         "settings": {
-            "logo": data.get("settings", {}).get("logo", ""),
-            "whatsapp": data.get("settings", {}).get("whatsapp", ""),
-            "header": data.get("settings", {}).get("header", ""),
+            "logo": st.get("logo", ""),
+            "whatsapp": st.get("whatsapp", ""),
+            "header": st.get("header", ""),
+            "bank_nama": st.get("bank_nama", ""),
+            "bank_no": st.get("bank_no", ""),
+            "bank_penama": st.get("bank_penama", ""),
+            "qr_bank": st.get("qr_bank", ""),
+            "qr_tng": st.get("qr_tng", ""),
+            "steps": st.get("steps", ""),
         },
     }

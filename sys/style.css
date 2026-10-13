@@ -7,8 +7,7 @@ h2 { font-size: 1.15rem; margin: 12px 0; }
 small { color: var(--muted); font-weight: 400; }
 .hint { color: var(--muted); font-size: .85rem; }
 
-/* footer */
-.footer { display: flex; justify-content: flex-end; padding: 16px 12px 0; max-width: 1024px; margin: 0 auto; }
+/* footer (admin kini dalam menu socmed) */
 .admin-fab-static { font-size: .7rem; opacity: .7; border: 1px solid #d1d5db; background: #fff; border-radius: 20px; padding: 5px 10px; cursor: pointer; }
 
 /* pages */
@@ -52,6 +51,33 @@ small { color: var(--muted); font-weight: 400; }
 .card-cat { font-size: .72rem; color: var(--muted); }
 .card-desc { font-size: .78rem; color: #374151; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .card-price { font-weight: 700; color: var(--theme); }
+.price-row { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: .78rem; margin-top: 2px; flex-wrap: wrap; }
+.price-old { color: var(--muted); text-decoration: line-through; }
+.price-disc { background: #dc2626; color: #fff; font-size: .68rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; }
+.price-new { font-weight: 800; color: #15803d; }
+.badge-disc { position: absolute; top: 6px; left: 6px; background: #dc2626; color: #fff; font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+.cart-img-wrap { position: relative; flex: 0 0 auto; }
+.cart-prices { font-size: .8rem; display: flex; gap: 6px; align-items: baseline; }
+.cart-total-right { text-align: right; font-size: .9rem; display: flex; flex-direction: column; gap: 2px; }
+.detail-img-wrap { position: relative; }
+.detail-img-wrap .badge-cat { top: 8px; left: 8px; }
+.detail-img-wrap .badge-like { top: 8px; right: 8px; }
+.detail-img-wrap .img-tukar { position: absolute; bottom: 8px; right: 8px; }
+.edit-img-wrap { position: relative; }
+/* Modal edit tentang + checkout: boleh scroll, senarai sijil scroll dalaman */
+#aboutModal .modal-card, #checkoutModal .modal-card { max-height: 88vh; overflow-y: auto; }
+#aSijilList { max-height: 32vh; overflow-y: auto; }
+#checkoutModal .card { flex-shrink: 0; }
+#checkoutModal input { flex-shrink: 0; }
+#coBankBox { overflow-wrap: anywhere; }
+#coBankBox small { display: block; }
+.sijil-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.sijil-grid img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 10px; border: 1px solid #e5e7eb; cursor: zoom-in; }
+.socmed-grid svg { width: 28px; height: 28px; display: block; margin: 0 auto 4px; }
+.qr-row { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.qr-row figure { flex: 1; margin: 0; text-align: center; }
+.qr-row img { width: 100%; max-width: 220px; border-radius: 10px; border: 1px solid #e5e7eb; }
+.icon-btn { border: 1px solid #d1d5db; background: #fff; border-radius: 10px; padding: 6px 9px; cursor: pointer; font-size: 1rem; line-height: 1; }
 .card-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
 .btn { border: 1px solid #d1d5db; background: #fff; border-radius: 10px; padding: 8px 12px; font-size: .85rem; cursor: pointer; }
 .btn.primary { background: var(--theme); color: #fff; border-color: var(--theme); }
@@ -79,9 +105,7 @@ small { color: var(--muted); font-weight: 400; }
 .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; background: #fff; border-top: 1px solid #e5e7eb; padding: 6px 2px calc(6px + env(safe-area-inset-bottom)); overflow-x: auto; }
 .nav-btn { flex: 1 0 auto; min-width: 48px; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .7rem; color: #374151; position: relative; padding: 6px 8px; cursor: pointer; }
 .nav-btn .ico { font-size: 1.25rem; }
-/* hanya icon: label sorok, keluar sebagai tooltip bila hover */
-.nav-btn .ico + span { display: none; }
-.nav-btn:hover .ico + span, .nav-btn:focus-visible .ico + span { display: block; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #111827; color: #fff; font-size: .7rem; padding: 4px 10px; border-radius: 8px; white-space: nowrap; z-index: 40; }
+.nav-btn .ico + span { display: block; font-size: .68rem; line-height: 1; }
 .nav-btn.active { color: var(--theme); font-weight: 700; }
 .badge { position: absolute; top: 0; right: 12px; background: #dc2626; color: #fff; font-size: .65rem; border-radius: 12px; padding: 1px 6px; }
 

@@ -28,7 +28,7 @@ if (environment) {
 const q = v => `'${String(v ?? '').replaceAll("'", "''")}'`;
 const rows = [];
 for (const table of ['products', 'categories', 'testimonials', 'documents', 'admin', 'sessions', 'login_limits', 'counters', 'events']) rows.push(`DELETE FROM ${table};`);
-for (const p of data.products) rows.push(`INSERT INTO products VALUES(${['id','nama','gambar','penerangan','kategori','demo'].map(k => q(p[k])).join(',')},${Number(p.likes) || 0});`);
+for (const p of data.products) rows.push(`INSERT INTO products(id,nama,gambar,penerangan,kategori,demo,likes,harga_sebelum,harga_selepas) VALUES(${['id', 'nama', 'gambar', 'penerangan', 'kategori', 'demo'].map(k => q(p[k])).join(',')},${Number(p.likes) || 0},${Number(p.harga_sebelum) || 0},${Number(p.harga_selepas) || 0});`);
 for (const c of data.categories) rows.push(`INSERT INTO categories VALUES(${q(c)});`);
 for (const t of data.testimonials) rows.push(`INSERT INTO testimonials VALUES(${q(t.id)},${q(t.nama)},${Number(t.rating) || 5},${q(t.komen)},${q(t.link)});`);
 for (const k of ['profile', 'socials', 'settings']) rows.push(`INSERT INTO documents VALUES(${q(k)},${q(JSON.stringify(data[k] || {}))});`);

@@ -9,8 +9,36 @@ export function imageExtension(bytes) {
   if (head.startsWith('RIFF') && head.slice(8,12)==='WEBP') return 'webp';
   return null;
 }
-export async function uploadGithub(request, env, githubFetch = fetch) {
-  if (!env.GITHUB_TOKEN) return failure('github_token_belum_ditetapkan',503);
+export function repoPathFromStored(value, owner = 'aizatsofian', repo = 'drexcel') {
+  if (typeof value !== 'string') return null;
+  const v = value.trim();
+  if (/^images\/uploads\/[\w./-]+\.\w+$/.test(v)) return v;
+  const m = /^https:\/\/raw\.githubusercontent\.com\/([\w.-]+)\/([\w.-]+)\/([a-f0-9]{40})\/(.+)$/.exec(v);
+  if (m && m[1] === owner && m[2] === repo && /^images\/uploads\/[\w./-]+\.\w+$/.test(m[4])) return m[4];
+  return null;
+}
+
+// Padam fail repo (delete-on-replace). Best-effort: gagal senyap (false), tidak block Simpan.
+export async function deleteGithubFile(repoPath, env, githubFetch = fetch) {
+  try {
+    const owner = env.GITHUB_OWNER || 'aizatsofian', repo = env.GITHUB_REPO || 'drexcel', branch = env.GITHUB_BRANCH || 'main';
+    if (owner !== 'aizatsofian' || repo !== 'drexcel' || !/^[\w./-]+$/.test(branch)) return false;
+    if (!env.GITHUB_TOKEN || !repoPath) return false;
+    const headers = { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2026-03-10', 'User-Agent': 'drexcel-upload' };
+    const get = await githubFetch(`https://api.github.com/repos/${owner}/${repo}/contents/${repoPath}?ref=${encodeURIComponent(branch)}`, { redirect: 'manual', signal: AbortSignal.timeout(30000), headers });
+    if (!get.ok) { await get.body?.cancel(); return false; }
+    let info; try { info = await get.json(); } catch { return false; }
+    if (!info.sha) return false;
+    const del = await githubFetch(`https://api.github.com/repos/${owner}/${repo}/contents/${repoPath}`, {
+      method: 'DELETE', redirect: 'manual', signal: AbortSignal.timeout(30000), headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `Remove replaced image ${repoPath} [skip ci]`, sha: info.sha, branch }),
+    });
+    await del.body?.cancel().catch(() => {});
+    return del.ok;
+  } catch { return false; }
+}
+
+export async function uploadGithub(request, env, githubFetch = fetch) {  if (!env.GITHUB_TOKEN) return failure('github_token_belum_ditetapkan',503);
   // Backend controls destination; never accept a repository/path from the client.
   const owner=env.GITHUB_OWNER || 'aizatsofian', repo=env.GITHUB_REPO || 'drexcel', branch=env.GITHUB_BRANCH || 'main';
   if (owner!=='aizatsofian' || repo!=='drexcel' || !/^[\w./-]+$/.test(branch)) return failure('github_config_tidak_sah',503);

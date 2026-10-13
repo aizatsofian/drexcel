@@ -1,7 +1,7 @@
 import { digest, hashPassword, verifyPassword, session, token, cookie } from './auth.mjs';
 import { tracks, socialKeys, object, text, cleanItem, cleanImport } from './validation.mjs';
 import { stmt, insertItem, publicData, analyticsData, analyticsSummary, importStatements } from './store.mjs';
-import { uploadGithub } from './uploads.mjs';
+import { uploadGithub, deleteGithubFile, repoPathFromStored } from './uploads.mjs';
 const json = (data, status=200, headers={}) => Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const fail = (error,status=400) => json({ok:false,error},status);
 async function body(request, max=2*1024*1024) {
@@ -14,7 +14,32 @@ async function body(request, max=2*1024*1024) {
   let value; try {value=JSON.parse(new TextDecoder().decode(bytes));} catch {throw new Error('json_tidak_sah');}
   if(!object(value)) throw new Error('format_tidak_sah'); return value;
 }
-export async function handle(request,env) {
+export async function handle(request, env, ctx) {
+  const background = (p) => { try { const r = (ctx && ctx.waitUntil) ? ctx.waitUntil(p) : p; if (r && r.catch) r.catch(() => {}); } catch {} };
+  // Padam repo path jika tiada rekod guna lagi (refcount selamat, best-effort).
+  // Banding ikut repoPath supaya URL raw commit-SHA dan path repo dianggap fail sama.
+  async function cleanupRepoPaths(db, candidates) {
+    const targets = new Map();
+    for (const old of new Set((candidates || []).filter(Boolean))) {
+      const rp = repoPathFromStored(old);
+      if (rp && !targets.has(rp)) targets.set(rp, old);
+    }
+    if (!targets.size) return;
+    try {
+      const used = new Set();
+      const prods = await stmt(db, 'SELECT gambar FROM products').all();
+      for (const r of prods.results || []) { const rp = repoPathFromStored(r.gambar); if (rp) used.add(rp); }
+      const docs = await stmt(db, "SELECT value FROM documents WHERE key IN ('profile','settings')").all();
+      for (const r of docs.results || []) {
+        try {
+          const v = JSON.parse(r.value || '{}');
+          for (const k of ['gambar', 'logo', 'qr_bank', 'qr_tng']) { const rp = repoPathFromStored(v[k]); if (rp) used.add(rp); }
+          for (const s of Array.isArray(v.sijil) ? v.sijil : []) { const rp = repoPathFromStored(s); if (rp) used.add(rp); }
+        } catch {}
+      }
+      for (const rp of targets.keys()) if (!used.has(rp)) background(deleteGithubFile(rp, env));
+    } catch {}
+  }
   const url=new URL(request.url), path=url.pathname, method=request.method,db=env.DB;
   try {
     if(!['GET','POST','PUT','DELETE'].includes(method)) return fail('method_tidak_sah',405);
@@ -69,12 +94,17 @@ export async function handle(request,env) {
     }
     if(method==='POST' && path==='/api/admin/settings') {
       const writes=[],changed={};
-      const specs={settings:['logo','whatsapp','header'],profile:['nama','biodata','kepakaran','penerangan','gambar'],socials:socialKeys};
+      let oldDocs={};
+      try {
+        const rows=await stmt(db,"SELECT key,value FROM documents WHERE key IN ('profile','settings')").all();
+        for(const r of rows.results||[]) { try { oldDocs[r.key]=JSON.parse(r.value||'{}'); } catch {} }
+      } catch {}
+      const specs={settings:['logo','whatsapp','header','bank_nama','bank_no','bank_penama','qr_bank','qr_tng','steps'],profile:['nama','biodata','kepakaran','penerangan','gambar','link','sijil'],socials:socialKeys};
       for(const [key,allowed] of Object.entries(specs)) {
         const input=key==='settings'?b:b[key];if(!object(input)) continue;
         const patch={};for(const k of allowed) if(k in input) {
-          if(k==='kepakaran') {if(!Array.isArray(input[k])) return fail('kepakaran_tidak_sah');patch[k]=input[k].slice(0,20).map(x=>text(x,80));}
-          else patch[k]=text(input[k],['penerangan'].includes(k)?2000:500);
+          if(k==='kepakaran'||k==='sijil') {if(!Array.isArray(input[k])) return fail(k+'_tidak_sah');patch[k]=input[k].slice(0,20).map(x=>text(x,k==='sijil'?500:80));}
+          else patch[k]=text(input[k],['penerangan','steps'].includes(k)?(k==='steps'?5000:2000):500);
         }
         if(!Object.keys(patch).length) continue;
         const row=await stmt(db,'SELECT value FROM documents WHERE key=?',key).first();
@@ -94,6 +124,17 @@ export async function handle(request,env) {
         changed.admin={username};
       }
       if(writes.length) await db.batch(writes);
+      try {
+        const doomed=[];
+        const np=changed.profile,op=oldDocs.profile||{};
+        if(np) {
+          if('gambar'in np&&op.gambar&&op.gambar!==np.gambar) doomed.push(op.gambar);
+          if(Array.isArray(np.sijil)) for(const s of op.sijil||[]) if(!np.sijil.includes(s)) doomed.push(s);
+        }
+        const ns=changed.settings,os=oldDocs.settings||{};
+        if(ns) for(const k of ['logo','qr_bank','qr_tng']) if(k in ns&&os[k]&&os[k]!==ns[k]) doomed.push(os[k]);
+        if(doomed.length) background(cleanupRepoPaths(db,doomed));
+      } catch {}
       return json({ok:true,changed});
     }
     const match=/^\/api\/admin\/(products|testimonials|categories)(?:\/([^/]+))?$/.exec(path);
@@ -109,7 +150,13 @@ export async function handle(request,env) {
         } else return fail('method_tidak_sah',405);
         const cats=await db.prepare('SELECT nama FROM categories ORDER BY rowid').all();return json({ok:true,categories:cats.results.map(c=>c.nama)});
       }
-      if(method==='DELETE'&&id) {const r=await stmt(db,`DELETE FROM ${kind} WHERE id=?`,id).run();return json({ok:!!r.meta.changes});}
+      if(method==='DELETE'&&id) {
+        let doomed='';
+        if(kind==='products') { try { doomed=(await stmt(db,'SELECT gambar FROM products WHERE id=?',id).first())?.gambar||''; } catch {} }
+        const r=await stmt(db,`DELETE FROM ${kind} WHERE id=?`,id).run();
+        if(doomed) background(cleanupRepoPaths(db,[doomed]));
+        return json({ok:!!r.meta.changes});
+      }
       if(method==='POST'&&!id) {
         const item={id:(kind==='products'?'p':'t')+crypto.randomUUID().replaceAll('-',''),...cleanItem(kind,b)};
         if(kind==='products') item.likes=10+crypto.getRandomValues(new Uint32Array(1))[0]%90;
@@ -117,8 +164,11 @@ export async function handle(request,env) {
       }
       if(method==='PUT'&&id) {
         const patch=cleanItem(kind,b,true),keys=Object.keys(patch);
+        let oldGambar='';
+        if(kind==='products'&&'gambar'in patch) { try { oldGambar=(await stmt(db,'SELECT gambar FROM products WHERE id=?',id).first())?.gambar||''; } catch {} }
         const changed=keys.length?await stmt(db,`UPDATE ${kind} SET ${keys.map(k=>`${k}=?`).join(',')} WHERE id=? AND (${keys.map(k=>`${k} IS NOT ?`).join(' OR ')}) RETURNING *`,...Object.values(patch),id,...Object.values(patch)).first():null;
         const item=changed||await stmt(db,`SELECT * FROM ${kind} WHERE id=?`,id).first();
+        if(item&&oldGambar&&item.gambar!==oldGambar) background(cleanupRepoPaths(db,[oldGambar]));
         return item?json({ok:true,item}):fail('item_tidak_jumpa',404);
       }
     }

@@ -40,9 +40,42 @@ async function init() {
   document.getElementById("hSearch").addEventListener("input", (e) => { S.kq = e.target.value.toLowerCase(); renderHome(); });
   document.getElementById("hCat").addEventListener("change", (e) => { S.kcat = e.target.value; renderHome(); });
   document.getElementById("checkoutBtn").addEventListener("click", checkout);
+  document.getElementById("coCancelBtn").addEventListener("click", () => document.getElementById("checkoutModal").classList.add("hidden"));
+  document.getElementById("coSendBtn").addEventListener("click", sendCheckout);
+  document.getElementById("checkoutModal").addEventListener("click", (e) => {
+    if (e.target.id === "checkoutModal") e.target.classList.add("hidden");
+  });
+  document.getElementById("sijilModal").addEventListener("click", (e) => {
+    if (e.target.id === "sijilModal") e.target.classList.add("hidden");
+  });
+  document.getElementById("stepEditBtn").addEventListener("click", () => {
+    const st = (S.data && S.data.settings) || {};
+    document.getElementById("stepText").value = st.steps || "";
+    document.getElementById("stepEditBox").classList.remove("hidden");
+  });
+  document.getElementById("stepCancelBtn").addEventListener("click", () => document.getElementById("stepEditBox").classList.add("hidden"));
+  document.getElementById("stepSaveBtn").addEventListener("click", async () => {
+    const steps = document.getElementById("stepText").value;
+    showLoader(true);
+    const r = await API.saveSettings({ steps });
+    showLoader(false);
+    if (r && r.ok) {
+      document.getElementById("stepEditBox").classList.add("hidden");
+      await reloadAll(); toast("Step disimpan", "ok");
+    } else toast("Gagal simpan step", "err");
+  });
   document.getElementById("clearCartBtn").addEventListener("click", async () => {
     if (!S.cart.length) return;
     if (await confirmDialog("Kosongkan semua bakul?")) { S.cart = []; saveCart(); renderCart(); toast("Bakul dikosongkan", "ok"); }
+  });
+  // Nota bakul: local sahaja (localStorage["nota"]), dihantar dalam mesej WA checkout
+  try {
+    const savedNota = localStorage.getItem("nota") || "";
+    if (document.getElementById("notaText")) document.getElementById("notaText").value = savedNota;
+  } catch {}
+  const notaEl = document.getElementById("notaText");
+  if (notaEl) notaEl.addEventListener("input", (e) => {
+    try { localStorage.setItem("nota", e.target.value); } catch {}
   });
   // tutup popup produk dengan klik luar kotak (butang Tutup dibuang)
   document.getElementById("detailModal").addEventListener("click", (e) => {
@@ -55,7 +88,7 @@ async function reloadAll(force = false) {
     const r = await API.data(force);
     S.data = r.data;
     applyTheme();
-    renderHome(); renderTesti(); renderAbout(); renderSocmed();
+    renderHome(); renderTesti(); renderAbout(); renderSocmed(); renderStep();
     if (typeof renderAdminLists === "function") renderAdminLists();
     if (typeof fillSettingsForm === "function") fillSettingsForm();
   } catch (e) {
@@ -70,6 +103,27 @@ function applyTheme() {
 }
 function findP(id) { return (S.data.products || []).find((p) => p.id === id); }
 
+function fmtRM(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v <= 0) return "";
+  return "RM" + (Math.round(v * 100) / 100).toLocaleString("ms-MY", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function discPct(p) {
+  const a = Number(p.harga_sebelum || 0), b = Number(p.harga_selepas || 0);
+  if (!(a > 0 && b > 0 && b < a)) return 0;
+  return Math.round(((a - b) / a) * 100);
+}
+function priceRowHTML(p) {
+  const a = Number(p.harga_sebelum || 0), b = Number(p.harga_selepas || 0);
+  if (!(a > 0 || b > 0)) return "";
+  const d = discPct(p);
+  const parts = [];
+  if (a > 0) parts.push(`<span class="price-old">${fmtRM(a)}</span>`);
+  if (d > 0) parts.push(`<span class="price-disc">-${d}%</span>`);
+  if (b > 0) parts.push(`<span class="price-new">${fmtRM(b)}</span>`);
+  return `<div class="price-row">${parts.join("")}</div>`;
+}
+
 function productCard(p) {
   const likes = Number(p.likes || 0);
   return `
@@ -81,6 +135,7 @@ function productCard(p) {
       </div>
       <div class="card-body">
         <div class="card-name">${esc(p.nama)}</div>
+        ${priceRowHTML(p)}
         <div class="card-actions">
           <button class="btn" data-act="demo">Video</button>
           <button class="btn primary" data-act="bakul">+ Bakul</button>
@@ -159,24 +214,32 @@ function openDetail(id) {
   API.track("product", id);
   const isAdmin = typeof LOGGED !== "undefined" && LOGGED;
   const cats = (S.data.categories || []).map((c) => `<option${c === p.kategori ? " selected" : ""}>${esc(c)}</option>`).join("");
+  const likes = Number(p.likes || 0);
   document.getElementById("detailBody").innerHTML = `
-    <img class="detail" id="dImg" src="${esc(p.gambar || "")}" onerror="this.src='https://picsum.photos/seed/${esc(p.id)}/600/400'">
+    <div class="detail-img-wrap">
+      <img class="detail" id="dImg" src="${esc(p.gambar || "")}" onerror="this.src='https://picsum.photos/seed/${esc(p.id)}/600/400'">
+      <span class="badge-cat" id="dCatBadge">${esc(p.kategori || "")}</span>
+      <span class="badge-like" id="dLike">❤️ <b>${likes}</b></span>
+      ${isAdmin ? `<button class="btn small img-tukar hidden" id="eTukarBtn" type="button">Tukar</button>` : ""}
+    </div>
     <div id="dView">
       <h3 style="text-align:center">${esc(p.nama)}</h3>
-      <div class="card-cat" style="text-align:center">${esc(p.kategori || "")}</div>
+      ${priceRowHTML(p)}
       <p>${esc(p.penerangan || "")}</p>
     </div>
-    <div id="dEdit" class="${isAdmin ? "hidden" : "hidden"}">
-      <input id="eNama" value="${esc(p.nama)}">
+    <div id="dEdit" class="hidden">
+      <input id="eNama" value="${esc(p.nama)}" placeholder="Nama produk" style="margin-top:8px">
       <div class="row" style="margin-top:8px"><select id="eKategori">${cats}</select></div>
-      <textarea id="ePenerangan" rows="3" style="margin-top:8px">${esc(p.penerangan || "")}</textarea>
+      <textarea id="ePenerangan" rows="3" style="margin-top:8px" placeholder="Description">${esc(p.penerangan || "")}</textarea>
       <div class="row" style="margin-top:8px">
-        <input id="eGambar" value="${esc(p.gambar || "")}" placeholder="URL gambar / uploads/...">
-        <button class="btn" id="eUpBtn" type="button">Upload</button>
-        <input id="eFile" type="file" accept=".png,.jpg,.jpeg,.webp,.gif" class="hidden">
+        <input id="eHargaSebelum" type="number" min="0" step="0.01" value="${Number(p.harga_sebelum || 0) || ""}" placeholder="Harga sebelum (RM)">
+        <input id="eHargaSelepas" type="number" min="0" step="0.01" value="${Number(p.harga_selepas || 0) || ""}" placeholder="Harga selepas (RM)">
       </div>
+      <input id="eDemo" value="${esc(p.demo || "")}" placeholder="Link video produk https://..." style="margin-top:8px">
+      <input id="eGambar" value="${esc(p.gambar || "")}" type="hidden">
+      <input id="eFile" type="file" accept=".png,.jpg,.jpeg,.webp,.gif" class="hidden">
     </div>
-    <div class="row">
+    <div class="row" id="dViewActions">
       <button class="btn" id="dDemo">Video</button>
       <button class="btn primary" id="dBakul">+ Bakul</button>
     </div>
@@ -185,36 +248,55 @@ function openDetail(id) {
       <button class="btn" id="dEditBtn">Edit</button>
     </div>
     <div class="row hidden" id="dAdminRow" style="margin-top:8px">
+      <button class="btn" id="eCancelBtn">Batal</button>
       <button class="btn primary" id="eSaveBtn">Simpan</button>
       <button class="btn danger" id="eDelBtn">Padam</button>
     </div>` : ""}`;
   document.getElementById("detailModal").classList.remove("hidden");
   document.getElementById("dDemo").addEventListener("click", (e) => openDemo(id, e));
   document.getElementById("dBakul").addEventListener("click", () => addCart(id));
+  const likeEl = document.getElementById("dLike");
+  if (likeEl) likeEl.addEventListener("click", () => likeProduct(id, likeEl));
   if (isAdmin) {
     const editBox = document.getElementById("dEdit");
     const viewBox = document.getElementById("dView");
+    const viewActions = document.getElementById("dViewActions");
     const adminRow = document.getElementById("dAdminRow");
     const editBtn = document.getElementById("dEditBtn");
+    const tukarBtn = document.getElementById("eTukarBtn");
+    const catBadge = document.getElementById("dCatBadge");
     let editing = false;
-    editBtn.addEventListener("click", () => {
-      editing = !editing;
+    const setEditing = (v) => {
+      editing = v;
       editBox.classList.toggle("hidden", !editing);
       viewBox.classList.toggle("hidden", editing);
+      viewActions.classList.toggle("hidden", editing);
       adminRow.classList.toggle("hidden", !editing);
-      editBtn.textContent = editing ? "Batal Edit" : "Edit";
+      editBtn.classList.toggle("hidden", editing);
+      if (tukarBtn) tukarBtn.classList.toggle("hidden", !editing);
+      if (catBadge) catBadge.classList.toggle("hidden", editing);
+      if (likeEl) likeEl.classList.toggle("hidden", editing);
+    };
+    editBtn.addEventListener("click", () => setEditing(true));
+    document.getElementById("eCancelBtn").addEventListener("click", () => {
+      // Batal: pulihkan preview ke gambar asal, fail preview jadi orphan (dibiarkan)
+      document.getElementById("eGambar").value = p.gambar || "";
+      document.getElementById("dImg").src = p.gambar || "";
+      setEditing(false);
     });
-    document.getElementById("eUpBtn").addEventListener("click", () => document.getElementById("eFile").click());
+    document.getElementById("eTukarBtn").addEventListener("click", () => document.getElementById("eFile").click());
     document.getElementById("eFile").addEventListener("change", async (e) => {
       const f = e.target.files[0];
+      e.target.value = "";
       if (!f) return;
       showLoader(true);
       const r = await API.upload(f);
       showLoader(false);
       if (r && r.ok) {
+        // Preview sahaja; gambar lama hanya dipadam selepas Simpan (server, refcount selamat)
         document.getElementById("eGambar").value = r.path;
         document.getElementById("dImg").src = r.path;
-        toast("Gambar dimuat naik: " + r.path, "ok");
+        toast("Preview gambar baharu. Tekan Simpan untuk ganti.", "ok");
       } else toast("Upload gagal", "err");
     });
     document.getElementById("eSaveBtn").addEventListener("click", async () => {
@@ -223,6 +305,9 @@ function openDetail(id) {
         kategori: document.getElementById("eKategori").value,
         penerangan: document.getElementById("ePenerangan").value.trim(),
         gambar: document.getElementById("eGambar").value.trim(),
+        demo: document.getElementById("eDemo").value.trim(),
+        harga_sebelum: Number(document.getElementById("eHargaSebelum").value || 0),
+        harga_selepas: Number(document.getElementById("eHargaSelepas").value || 0),
       };
       if (!body.nama || !body.kategori) { toast("Nama & kategori diperlukan", "err"); return; }
       showLoader(true);
@@ -244,26 +329,78 @@ function renderCart() {
   const box = document.getElementById("cartList");
   const items = S.cart.map(findP).filter(Boolean);
   box.innerHTML = items.length ? items.map((p) => {
+    const d = discPct(p);
     return `<div class="cart-item">
-      <img src="${esc(p.gambar || "")}" onerror="this.src='https://picsum.photos/seed/${esc(p.id)}/600/400'">
-      <div style="flex:1"><b>${esc(p.nama)}</b><br><small>${esc(p.kategori || "")}</small></div>
-      <button class="btn small" data-del="${esc(p.id)}">Buang</button>
+      <div class="cart-img-wrap">
+        <img src="${esc(p.gambar || "")}" onerror="this.src='https://picsum.photos/seed/${esc(p.id)}/600/400'">
+        ${d > 0 ? `<span class="badge-disc">-${d}%</span>` : ""}
+      </div>
+      <div style="flex:1"><b>${esc(p.nama)}</b><br><small>${esc(p.kategori || "")}</small><div class="cart-prices">${Number(p.harga_sebelum || 0) > 0 ? `<span class="price-old">${fmtRM(p.harga_sebelum)}</span>` : ""}${Number(p.harga_selepas || 0) > 0 ? `<span class="price-new">${fmtRM(p.harga_selepas)}</span>` : ""}</div></div>
+      <button class="icon-btn" data-del="${esc(p.id)}" title="Buang">🗑️</button>
     </div>`;
   }).join("") : '<p class="empty">Bakul kosong. Tambah produk dari Home.</p>';
   box.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => {
     S.cart = S.cart.filter((x) => x !== b.dataset.del);
     saveCart(); renderCart();
   }));
+  // Kotak jumlah: total sebelum | % | total selepas, angka ke kanan
+  const totalBox = document.getElementById("cartTotal");
+  if (totalBox) {
+    if (!items.length) { totalBox.classList.add("hidden"); totalBox.innerHTML = ""; }
+    else {
+      const totA = items.reduce((a, p) => a + Number(p.harga_sebelum || 0), 0);
+      const totB = items.reduce((a, p) => a + Number(p.harga_selepas || 0), 0);
+      const d = (totA > 0 && totB > 0 && totB < totA) ? Math.round(((totA - totB) / totA) * 100) : 0;
+      const hasPrice = totA > 0 || totB > 0;
+      totalBox.classList.remove("hidden");
+      totalBox.innerHTML = hasPrice
+        ? `<div class="cart-total-right"><span class="price-old">${totA > 0 ? fmtRM(totA) : "-"}</span>${d > 0 ? `<span class="price-disc">-${d}%</span>` : ""}<b class="price-new">${totB > 0 ? fmtRM(totB) : "-"}</b></div>`
+        : `<div class="cart-total-right"><small>Tiada harga ditetapkan</small></div>`;
+    }
+  }
+  renderStep();
+}
+function renderStep() {
+  const st = (S.data && S.data.settings) || {};
+  const box = document.getElementById("stepContent");
+  if (box) box.textContent = st.steps || "Langkah mendapatkan sistem akan dipaparkan di sini.";
 }
 function checkout() {
   const items = S.cart.map(findP).filter(Boolean);
   if (!items.length) { toast("Bakul kosong", "err"); return; }
+  const st = (S.data.settings) || {};
+  const bankBox = document.getElementById("coBankBox");
+  if (bankBox) bankBox.innerHTML = `<b>${esc(st.bank_nama || "Bank")}</b><br><small>No akaun: ${esc(st.bank_no || "-")}<br>Penama: ${esc(st.bank_penama || "-")}</small>`;
+  const qrBox = document.getElementById("coQrBox");
+  if (qrBox) {
+    qrBox.innerHTML = `<div class="qr-row">`
+      + (st.qr_bank ? `<figure><img src="${esc(st.qr_bank)}" alt="QR bank"><figcaption><small>QR Bank</small></figcaption></figure>` : "")
+      + (st.qr_tng ? `<figure><img src="${esc(st.qr_tng)}" alt="QR TnG"><figcaption><small>QR TnG</small></figcaption></figure>` : "")
+      + ((!st.qr_bank && !st.qr_tng) ? `<small>QR bayaran belum ditetapkan.</small>` : "") + `</div>`;
+  }
+  document.getElementById("checkoutModal").classList.remove("hidden");
+}
+function sendCheckout() {
+  const items = S.cart.map(findP).filter(Boolean);
+  if (!items.length) { toast("Bakul kosong", "err"); return; }
+  const nama = document.getElementById("coNama").value.trim();
+  const wasap = document.getElementById("coWasap").value.trim();
+  const email = document.getElementById("coEmail").value.trim();
+  const socmed = document.getElementById("coSocmed").value.trim();
+  const paid = document.getElementById("coPaid").checked;
+  let nota = "";
+  try { nota = ((document.getElementById("notaText") && document.getElementById("notaText").value) || localStorage.getItem("nota") || "").trim(); } catch { nota = (document.getElementById("notaText") && document.getElementById("notaText").value.trim()) || ""; }
+  if (!nama || !wasap || !email) { toast("Isi nama, no whatsapp dan email", "err"); return; }
   const no = (S.data.settings && S.data.settings.whatsapp) || "";
   if (!no) { toast("Nombor WhatsApp belum ditetapkan", "err"); return; }
-  const lines = items.map((p, i) => `${i + 1}. ${p.nama}`);
-  const msg = `Assalamualaikum, saya berminat:%0A%0A${encodeURIComponent(lines.join("\n"))}`;
+  const lines = items.map((p, i) => {
+    const b = Number(p.harga_selepas || 0) > 0 ? ` (${fmtRM(p.harga_selepas)})` : "";
+    return `${i + 1}. ${p.nama}${b}`;
+  });
+  const msg = `nama : ${nama}\nno whatsapp : ${wasap}\nemail : ${email}\nnama socmed : ${socmed || "-"}\nstatus : ${paid ? "saya dah bayar" : "belum bayar"}${nota ? `\nnota : ${nota}` : ""}\n\n${lines.join("\n")}\n\nini bukti bayaran saya`;
   API.track("whatsapp");
-  window.open(`https://wa.me/${no}?text=${msg}`, "_blank");
+  document.getElementById("checkoutModal").classList.add("hidden");
+  window.open(`https://wa.me/${no}?text=${encodeURIComponent(msg)}`, "_blank");
 }
 
 function renderTesti() {
@@ -286,18 +423,38 @@ function renderTesti() {
 }
 function renderAbout() {
   const p = S.data.profile || {};
+  const sijil = Array.isArray(p.sijil) ? p.sijil.filter(Boolean) : [];
   document.getElementById("aboutCard").innerHTML = `
-    ${p.gambar ? `<img class="detail" src="${esc(p.gambar)}">` : ""}
-    <h3>${esc(p.nama || "")}</h3><p>${esc(p.biodata || "")}</p>
-    <p><b>Kepakaran:</b> ${esc((p.kepakaran || []).join(", "))}</p><p>${esc(p.penerangan || "")}</p>`;
+    ${p.gambar ? `<div class="card pad" style="margin-bottom:10px"><img class="detail" src="${esc(p.gambar)}" style="width:100%;border-radius:10px;object-fit:cover"></div>` : ""}
+    <div class="row" style="margin-bottom:10px">
+      <div class="card pad" style="flex:1;margin:0"><h3 style="margin:0">${esc(p.nama || "")}</h3></div>
+      ${p.link ? `<div class="card pad" style="flex:0 0 auto;margin:0;display:flex;align-items:center"><a href="${esc(p.link)}" target="_blank">🔗 Lihat site</a></div>` : ""}
+    </div>
+    <div class="card pad" style="margin-bottom:10px"><p style="margin:0">${esc(p.biodata || "")}</p></div>
+    <div class="card pad"><div class="sijil-grid">${sijil.map((s) => `<img src="${esc(s)}" data-sijil="${esc(s)}" loading="lazy">`).join("") || "<small>Tiada sijil dipaparkan.</small>"}</div></div>`;
+  document.querySelectorAll("[data-sijil]").forEach((img) => img.addEventListener("click", () => {
+    document.getElementById("sijilImg").src = img.dataset.sijil;
+    document.getElementById("sijilModal").classList.remove("hidden");
+  }));
   const isAdmin = typeof LOGGED !== "undefined" && LOGGED;
   if (isAdmin && typeof bindAboutAdmin === "function") bindAboutAdmin();
 }
-const SOCMED_META = { whatsapp: ["WhatsApp", "💬"], tiktok: ["TikTok", "🎵"], threads: ["Threads", "🧵"], facebook: ["Facebook", "📘"], instagram: ["Instagram", "📸"], linkedin: ["LinkedIn", "💼"], youtube: ["YouTube", "▶️"] };
+const SOCMED_SVG = {
+  whatsapp: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#25D366"/><path d="M16 8c-4.4 0-8 3.6-8 8 0 1.4.4 2.8 1.1 4L8 24l4-1c1.2.7 2.6 1 4 1 4.4 0 8-3.6 8-8s-3.6-8-8-8zm0 14.5c-1.2 0-2.4-.3-3.4-.9l-.2-.1-2.4.6.6-2.3-.2-.2c-.7-1-1-2.2-1-3.6 0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5-2.9 6.5-6.5 6.5zm3.6-4.9c-.2-.1-1.2-.6-1.4-.6-.2-.1-.3-.1-.5.1l-.6.7c-.1.1-.2.1-.4 0-.5-.2-1-.6-1.5-1.1-.4-.4-.7-.9-.9-1.2-.1-.2 0-.3.1-.4l.4-.5c.1-.1.1-.3 0-.4l-.7-1.6c-.2-.4-.3-.3-.5-.3h-.4c-.1 0-.4.1-.5.3-.2.2-.7.7-.7 1.7s.7 2 .8 2.1c.1.1 1.4 2.2 3.5 3 .5.2.9.3 1.2.4.5.2 1 .1 1.3.1.4-.1 1.2-.5 1.4-1 .2-.5.2-.9.1-1 0-.1-.2-.1-.4-.2z" fill="#fff"/></svg>`,
+  tiktok: `<svg viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#111"/><path d="M21 8.5c.6 2 2 3.5 4.2 3.7v3c-1.6 0-3-.5-4.2-1.4v6.1c0 3.4-2.6 5.6-5.7 5.6-3 0-5.3-2.2-5.3-5.2 0-3.1 2.6-5.3 5.9-5.1v3.1c-1.5-.3-3 .8-3 2 0 1.2 1 2.1 2.2 2.1 1.4 0 2.5-1 2.5-2.6V8.5H21z" fill="#fff"/><path d="M21 8.5c.6 2 2 3.5 4.2 3.7v3c-1.6 0-3-.5-4.2-1.4v.5c1.2.9 2.6 1.4 4.2 1.4v-3c-2.2-.2-3.6-1.7-4.2-3.7h-3v11.2" fill="#25F4EE" opacity=".7"/></svg>`,
+  telegram: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#229ED9"/><path d="M7 15.5l14-6.5c.6-.3 1.2.4.8 1l-5.5 11c-.3.6-1.1.7-1.5.1l-2.6-3.1-3.4 2.6c-.4.3-1 .1-1.1-.4l-.7-4.7zm5.5 3.2l7-6.5-5.8 7.3-.4 2.7-1.4-1.6.6-1.9z" fill="#fff"/></svg>`,
+  facebook: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#1877F2"/><path d="M18.5 25v-7h2.4l.4-3h-2.8v-1.9c0-.9.3-1.5 1.6-1.5h1.3V8.9c-.3 0-1.1-.1-2-.1-2 0-3.4 1.2-3.4 3.5V15h-2.5v3H16v7h2.5z" fill="#fff"/></svg>`,
+  instagram: `<svg viewBox="0 0 32 32"><rect x="5" y="5" width="22" height="22" rx="6" fill="none" stroke="#E1306C" stroke-width="2.5"/><circle cx="16" cy="16" r="5" fill="none" stroke="#E1306C" stroke-width="2.5"/><circle cx="22.5" cy="9.5" r="1.8" fill="#E1306C"/></svg>`,
+  linkedin: `<svg viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="4" fill="#0A66C2"/><rect x="9" y="14" width="3.4" height="9" fill="#fff"/><circle cx="10.7" cy="11" r="1.9" fill="#fff"/><path d="M15 23v-4.8c0-1.4.7-2.4 2.1-2.4 1.3 0 1.9.9 1.9 2.4V23h3.4v-5.3c0-3-1.6-4.4-3.9-4.4-1.7 0-2.6 1-3.1 1.7v-1.5H15V23z" fill="#fff"/></svg>`,
+  youtube: `<svg viewBox="0 0 32 32"><rect x="3" y="7" width="26" height="18" rx="5" fill="#FF0000"/><path d="M13.5 12.5v7l6-3.5-6-3.5z" fill="#fff"/></svg>`,
+  threads: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#111"/><text x="16" y="22" font-size="16" text-anchor="middle" fill="#fff" font-family="system-ui">@</text></svg>`,
+  other: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="15" fill="#6b7280"/><path d="M13 17l6-6c1-1 2.6-1 3.5 0s1 2.6 0 3.5l-3 3M19 15l-6 6c-1 1-2.6 1-3.5 0s-1-2.6 0-3.5l3-3" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>`,
+};
+const SOCMED_META = { whatsapp: "WhatsApp", tiktok: "TikTok", telegram: "Telegram", threads: "Threads", facebook: "Facebook", instagram: "Instagram", linkedin: "LinkedIn", youtube: "YouTube", other: "Other" };
 function renderSocmed() {
   const sc = S.data.socials || {};
   document.getElementById("socmedGrid").innerHTML = Object.keys(SOCMED_META).map((k) =>
-    `<a href="${esc(sc[k] || "#")}" target="_blank"><span class="big">${SOCMED_META[k][1]}</span>${SOCMED_META[k][0]}</a>`).join("");
+    `<a href="${esc(sc[k] || "#")}" target="_blank">${SOCMED_SVG[k] || ""}${SOCMED_META[k]}</a>`).join("");
   const isAdmin = typeof LOGGED !== "undefined" && LOGGED;
   const card = document.getElementById("socmedEditCard");
   if (card) card.classList.toggle("hidden", !(isAdmin && SOCMED_EDIT_MODE));

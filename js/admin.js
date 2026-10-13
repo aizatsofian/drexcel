@@ -87,7 +87,7 @@ async function delProduct(id) {
 document.getElementById("homeEditBtn").addEventListener("click", () => {
   if (!S || !S.data) return;
   renderAdminLists();
-  ["npNama", "npDemo", "npGambar", "npPenerangan"].forEach((i) => { const el = document.getElementById(i); if (el) el.value = ""; });
+  ["npNama", "npDemo", "npGambar", "npPenerangan", "npHargaSebelum", "npHargaSelepas"].forEach((i) => { const el = document.getElementById(i); if (el) el.value = ""; });
   const pv = document.getElementById("npPreview");
   if (pv) { pv.src = ""; pv.classList.add("hidden"); }
   const f = document.getElementById("npFile");
@@ -102,6 +102,8 @@ document.getElementById("npSaveBtn").addEventListener("click", async () => {
     kategori: document.getElementById("npKategori").value,
     gambar: document.getElementById("npGambar").value.trim(),
     penerangan: document.getElementById("npPenerangan").value.trim(),
+    harga_sebelum: Number(document.getElementById("npHargaSebelum").value || 0),
+    harga_selepas: Number(document.getElementById("npHargaSelepas").value || 0),
   };
   if (!body.nama || !body.kategori) { toast("Nama & kategori diperlukan", "err"); return; }
   showLoader(true);
@@ -181,7 +183,7 @@ function bindTestiAdmin() {
 }
 
 // ---------- SOCMED (edit di menu Socmed, mod Edit) ----------
-const SOCMED_KEYS = ["whatsapp", "tiktok", "threads", "facebook", "instagram", "linkedin", "youtube"];
+const SOCMED_KEYS = ["whatsapp", "tiktok", "telegram", "threads", "facebook", "instagram", "linkedin", "youtube", "other"];
 function fillSocmedForm() {
   if (!S || !S.data) return;
   const sc = S.data.socials || {};
@@ -216,16 +218,41 @@ function openAboutModal() {
   const pr = (S.data && S.data.profile) || {};
   document.getElementById("aNama").value = pr.nama || "";
   document.getElementById("aBiodata").value = pr.biodata || "";
-  document.getElementById("aKepakaran").value = (pr.kepakaran || []).join(", ");
-  document.getElementById("aPenerangan").value = pr.penerangan || "";
+  document.getElementById("aLink").value = pr.link || "";
   document.getElementById("aGambar").value = pr.gambar || "";
+  renderSijilList(pr.sijil || []);
   document.getElementById("aboutModal").classList.remove("hidden");
+}
+let _sijilDraft = [];
+function renderSijilList(list) {
+  _sijilDraft = [...(list || [])];
+  const box = document.getElementById("aSijilList");
+  if (!box) return;
+  box.innerHTML = _sijilDraft.map((s, i) => `<div class="row" style="align-items:center"><img src="${esc(s)}" style="width:64px;height:48px;object-fit:cover;border-radius:8px"><small style="flex:1;overflow:hidden;text-overflow:ellipsis">${esc(s)}</small><button class="btn small danger" data-sijildel="${i}">Padam</button></div>`).join("") || "<small>Tiada sijil.</small>";
+  box.querySelectorAll("[data-sijildel]").forEach((b) => b.addEventListener("click", () => {
+    _sijilDraft.splice(Number(b.dataset.sijildel), 1);
+    renderSijilList(_sijilDraft);
+  }));
 }
 function bindAboutAdmin() {
   const btn = document.getElementById("aboutEditBtn");
   if (btn) btn.onclick = openAboutModal;
 }
 document.getElementById("aboutEditBtn").addEventListener("click", openAboutModal);
+document.getElementById("aSijilUpBtn").addEventListener("click", () => document.getElementById("aSijilFile").click());
+document.getElementById("aSijilFile").addEventListener("change", async (e) => {
+  const files = [...(e.target.files || [])];
+  e.target.value = "";
+  if (!files.length) return;
+  showLoader(true);
+  for (const f of files.slice(0, 20 - _sijilDraft.length)) {
+    const r = await API.upload(f);
+    if (r && r.ok) _sijilDraft.push(r.path);
+  }
+  showLoader(false);
+  renderSijilList(_sijilDraft);
+  toast("Sijil dimuat naik", "ok");
+});
 document.getElementById("aCancelBtn").addEventListener("click", () => document.getElementById("aboutModal").classList.add("hidden"));
 document.getElementById("aUpBtn").addEventListener("click", () => document.getElementById("aFile").click());
 document.getElementById("aFile").addEventListener("change", async (e) => {
@@ -242,9 +269,9 @@ document.getElementById("aSaveBtn").addEventListener("click", async () => {
     profile: {
       nama: document.getElementById("aNama").value.trim(),
       biodata: document.getElementById("aBiodata").value.trim(),
-      kepakaran: document.getElementById("aKepakaran").value.split(",").map((x) => x.trim()).filter(Boolean),
-      penerangan: document.getElementById("aPenerangan").value.trim(),
+      link: document.getElementById("aLink").value.trim(),
       gambar: document.getElementById("aGambar").value.trim(),
+      sijil: _sijilDraft,
     },
   };
   showLoader(true);
@@ -256,12 +283,14 @@ document.getElementById("aSaveBtn").addEventListener("click", async () => {
   } else toast("Gagal simpan", "err");
 });
 
-// ---------- TETAPAN 4 kotak (website / kategori di renderAdminLists / carta di analytics.js / admin) ----------
+// ---------- TETAPAN (website / bayar / kategori / carta / admin) ----------
 function fillSettingsForm() {
   if (!S || !S.data) return;
   const st = S.data.settings || {};
   const set = (id, v) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = v || ""; };
   set("sWhatsapp", st.whatsapp); set("sHeader", st.header); set("sLogo", st.logo);
+  set("bBankNama", st.bank_nama); set("bBankNo", st.bank_no); set("bBankPenama", st.bank_penama);
+  set("bQrBank", st.qr_bank); set("bQrTng", st.qr_tng);
   set("sAdminUser", (S.data.admin && S.data.admin.username) || "");
 }
 
@@ -287,6 +316,41 @@ document.getElementById("webSaveBtn").addEventListener("click", async () => {
   showLoader(false);
   if (r && r.ok) { await reloadAll(); toast("Website disimpan", "ok"); }
   else toast("Gagal simpan website", "err");
+});
+
+document.getElementById("bayarSaveBtn").addEventListener("click", async () => {
+  const body = {
+    bank_nama: document.getElementById("bBankNama").value.trim(),
+    bank_no: document.getElementById("bBankNo").value.trim(),
+    bank_penama: document.getElementById("bBankPenama").value.trim(),
+    qr_bank: document.getElementById("bQrBank").value.trim(),
+    qr_tng: document.getElementById("bQrTng").value.trim(),
+  };
+  showLoader(true);
+  const r = await API.saveSettings(body);
+  showLoader(false);
+  if (r && r.ok) { await reloadAll(); toast("Bayar disimpan", "ok"); }
+  else toast("Gagal simpan bayar", "err");
+});
+document.getElementById("bQrBankUp").addEventListener("click", () => document.getElementById("bQrBankFile").click());
+document.getElementById("bQrBankFile").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  showLoader(true);
+  const r = await API.upload(f);
+  showLoader(false);
+  if (r.ok) { document.getElementById("bQrBank").value = r.path; toast("Dimuat naik: " + r.path, "ok"); }
+  else toast("Upload gagal: " + (r.error || ""), "err");
+});
+document.getElementById("bQrTngUp").addEventListener("click", () => document.getElementById("bQrTngFile").click());
+document.getElementById("bQrTngFile").addEventListener("change", async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  showLoader(true);
+  const r = await API.upload(f);
+  showLoader(false);
+  if (r.ok) { document.getElementById("bQrTng").value = r.path; toast("Dimuat naik: " + r.path, "ok"); }
+  else toast("Upload gagal: " + (r.error || ""), "err");
 });
 
 document.getElementById("adminSaveBtn").addEventListener("click", async () => {

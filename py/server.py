@@ -21,7 +21,7 @@ from auth import (
 from backup import validate_import
 from config import BASE_DIR, DATA_FILE, PORT, UPLOAD_DIR
 from store import _lock, load_data, update_data
-from uploads import handle_upload
+from uploads import handle_upload, remove_if_orphan
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -197,6 +197,13 @@ class Handler(BaseHTTPRequestHandler):
             def _fn(data):
                 import random
                 import uuid
+
+                def _price(v):
+                    try:
+                        n = float(v)
+                    except (TypeError, ValueError):
+                        return 0
+                    return round(n, 2) if n >= 0 else 0
                 prods = data.setdefault("products", [])
                 new_id = "p" + uuid.uuid4().hex[:6]
                 item = {
@@ -207,6 +214,8 @@ class Handler(BaseHTTPRequestHandler):
                     "kategori": str(with_data.get("kategori", ""))[:80],
                     "demo": str(with_data.get("demo", ""))[:500],
                     "likes": random.randint(10, 99),
+                    "harga_sebelum": _price(with_data.get("harga_sebelum")),
+                    "harga_selepas": _price(with_data.get("harga_selepas")),
                 }
                 prods.append(item)
                 return item
@@ -255,13 +264,19 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_admin():
                 return
             body = self.read_json()
-            allowed = {"logo", "whatsapp", "header"}
-            profile_allowed = {"nama", "biodata", "kepakaran", "penerangan", "gambar"}
+            allowed = {"logo", "whatsapp", "header", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps"}
+            profile_allowed = {"nama", "biodata", "kepakaran", "penerangan", "gambar", "link", "sijil"}
+            with _lock:
+                old_data = load_data()
+            old_profile = dict(old_data.get("profile", {}) or {})
+            old_settings = dict(old_data.get("settings", {}) or {})
             def _fn(data):
                 st = data.setdefault("settings", {})
                 for k in allowed:
                     if k in body:
-                        st[k] = body[k]
+                        cap = 5000 if k == "steps" else 500
+                        v = body[k]
+                        st[k] = str(v if v is not None else "")[:cap]
                 if "profile" in body and isinstance(body["profile"], dict):
                     pr = data.setdefault("profile", {})
                     for k in profile_allowed:
@@ -270,7 +285,7 @@ class Handler(BaseHTTPRequestHandler):
                 if "socials" in body and isinstance(body["socials"], dict):
                     sc = data.setdefault("socials", {})
                     for k, v in body["socials"].items():
-                        if k in ("whatsapp", "tiktok", "threads", "facebook", "instagram", "linkedin", "youtube"):
+                        if k in ("whatsapp", "tiktok", "threads", "facebook", "instagram", "linkedin", "youtube", "telegram", "other"):
                             sc[k] = v
                 if "admin" in body and isinstance(body["admin"], dict):
                     adm = data.setdefault("admin", {})
@@ -280,6 +295,26 @@ class Handler(BaseHTTPRequestHandler):
                         adm["password_hash"] = hash_password(str(body["admin"]["password"]))
                 return True
             update_data(_fn)
+            # Padam gambar lama yang diganti (refcount selamat, best-effort)
+            try:
+                with _lock:
+                    fresh = load_data()
+                doomed = set()
+                if "profile" in body and isinstance(body["profile"], dict):
+                    bp = body["profile"]
+                    if "gambar" in bp and old_profile.get("gambar") and old_profile["gambar"] != fresh.get("profile", {}).get("gambar"):
+                        doomed.add(old_profile["gambar"])
+                    if "sijil" in bp and isinstance(bp["sijil"], list):
+                        for s in old_profile.get("sijil", []) or []:
+                            if s not in (bp["sijil"] or []):
+                                doomed.add(s)
+                for k in ("logo", "qr_bank", "qr_tng"):
+                    if k in body and old_settings.get(k) and old_settings[k] != (fresh.get("settings", {}) or {}).get(k):
+                        doomed.add(old_settings[k])
+                for d in doomed:
+                    remove_if_orphan(d, fresh)
+            except Exception:
+                pass
             self.send_json({"ok": True})
             return
         if route == "/api/admin/import":
@@ -311,16 +346,34 @@ class Handler(BaseHTTPRequestHandler):
                 return
             body = self.read_json()
             if kind == "products":
+                with _lock:
+                    old_gambar = next((p.get("gambar", "") for p in load_data().get("products", []) if p.get("id") == ident), "")
+
                 def _fn(data):
                     for p in data.get("products", []):
                         if p.get("id") == ident:
                             for k in ("nama", "gambar", "penerangan", "kategori", "demo"):
                                 if k in body:
                                     p[k] = body[k]
+                            for k in ("harga_sebelum", "harga_selepas"):
+                                if k in body:
+                                    try:
+                                        n = float(body[k])
+                                        p[k] = round(n, 2) if n >= 0 else 0
+                                    except (TypeError, ValueError):
+                                        p[k] = 0
                             return p
                     return None
                 item = update_data(_fn)
                 if item:
+                    try:
+                        new_gambar = item.get("gambar", "")
+                        if old_gambar and new_gambar != old_gambar:
+                            with _lock:
+                                fresh = load_data()
+                            remove_if_orphan(old_gambar, fresh)
+                    except Exception:
+                        pass
                     self.send_json({"ok": True, "item": item})
                 else:
                     self.send_json({"ok": False, "error": "produk_tidak_jumpa"}, 404)
@@ -368,12 +421,23 @@ class Handler(BaseHTTPRequestHandler):
             if not self.require_admin():
                 return
             if kind == "products":
+                with _lock:
+                    doomed = next((p.get("gambar", "") for p in load_data().get("products", []) if p.get("id") == ident), "")
+
                 def _fn(data):
                     prods = data.get("products", [])
                     n0 = len(prods)
                     data["products"] = [p for p in prods if p.get("id") != ident]
                     return len(data["products"]) < n0
-                self.send_json({"ok": update_data(_fn)})
+                ok = update_data(_fn)
+                if ok and doomed:
+                    try:
+                        with _lock:
+                            fresh = load_data()
+                        remove_if_orphan(doomed, fresh)
+                    except Exception:
+                        pass
+                self.send_json({"ok": ok})
                 return
             if kind == "categories":
                 def _fn2(data):

@@ -3,8 +3,60 @@ import os
 import secrets
 import time
 
-from config import ALLOWED_UPLOAD_EXT, MAX_UPLOAD_BYTES, UPLOAD_DIR
-from store import _lock
+from config import ALLOWED_UPLOAD_EXT, BASE_DIR, MAX_UPLOAD_BYTES, UPLOAD_DIR
+from store import _lock, load_data
+
+
+def is_local_upload(path):
+    """Betul jika path会 gambar local dalam uploads/ (bukan URL luar/GitHub)."""
+    if not isinstance(path, str):
+        return False
+    p = path.strip().replace("\\", "/")
+    if not p.startswith("uploads/"):
+        return False
+    rest = p[len("uploads/"):]
+    if not rest or ".." in rest or rest.startswith("/"):
+        return False
+    return True
+
+
+def collect_refs(data):
+    """Semua path gambar yang masih dirujuk data (untuk refcount selamat)."""
+    refs = set()
+    for p in data.get("products", []) or []:
+        if isinstance(p, dict) and p.get("gambar"):
+            refs.add(p["gambar"])
+    pr = data.get("profile", {}) or {}
+    if pr.get("gambar"):
+        refs.add(pr["gambar"])
+    for s in pr.get("sijil", []) or []:
+        if s:
+            refs.add(s)
+    st = data.get("settings", {}) or {}
+    for k in ("logo", "qr_bank", "qr_tng"):
+        if st.get(k):
+            refs.add(st[k])
+    return refs
+
+
+def remove_if_orphan(old_path, data_after=None):
+    """Padam fail local jika tiada rekod guna lagi. Gagal senyap (best-effort)."""
+    if not is_local_upload(old_path):
+        return False
+    try:
+        data = data_after if data_after is not None else load_data()
+        if old_path in collect_refs(data):
+            return False
+        full = os.path.normpath(os.path.join(BASE_DIR, old_path.replace("/", os.sep)))
+        if not full.startswith(os.path.join(BASE_DIR, "uploads")) or not os.path.isfile(full):
+            return False
+        with _lock:
+            if old_path in collect_refs(load_data()):
+                return False
+            os.remove(full)
+        return True
+    except Exception:
+        return False
 
 
 def handle_upload(handler):

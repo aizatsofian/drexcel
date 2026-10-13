@@ -4,12 +4,12 @@ Export Analisis: Ringkasan, KlikProduk, KlikDemo, Events, DemoHarian, DemoTop.
 Import pintar: baca sheet yang ada dalam fail — fail data ganti kandungan
 sahaja, fail analisis ganti analytics sahaja, fail penuh ganti semua.
 Format sheet (wajib sama untuk import):
-  Produk: id, nama, gambar, penerangan, kategori, demo, likes
+  Produk: id, nama, gambar, penerangan, kategori, demo, likes, harga_sebelum, harga_selepas
   Kategori: nama
   Testimoni: id, nama, rating, komen, link
-  Profil: nama, biodata, kepakaran (pisah ";"), penerangan, gambar
+  Profil: nama, biodata, kepakaran (pisah ";"), penerangan, gambar, link, sijil (pisah ";")
   Socmed: platform, url
-  Tetapan: tetapan, nilai (logo, whatsapp, header)
+  Tetapan: tetapan, nilai (logo, whatsapp, header, bank_nama, bank_no, bank_penama, qr_bank, qr_tng, steps)
   Ringkasan: metrik, nilai (visitors, whatsapp_clicks, demo_*)
   KlikProduk / KlikDemo: produk, klik
   Events: t, jenis, produk
@@ -17,8 +17,8 @@ Format sheet (wajib sama untuk import):
   DemoTop: produk, klik
 Kredensial admin tidak diexport dan tidak disentuh import.
 */
-const SOCMED_ORDER = ["whatsapp", "tiktok", "threads", "facebook", "instagram", "linkedin", "youtube"];
-const SETTING_ORDER = ["logo", "whatsapp", "header"];
+const SOCMED_ORDER = ["whatsapp", "tiktok", "telegram", "threads", "facebook", "instagram", "linkedin", "youtube", "other"];
+const SETTING_ORDER = ["logo", "whatsapp", "header", "bank_nama", "bank_no", "bank_penama", "qr_bank", "qr_tng", "steps"];
 const DATA_SHEETS = ["Produk", "Kategori", "Testimoni", "Profil", "Socmed", "Tetapan"];
 const ANA_SHEETS = ["Ringkasan", "KlikProduk", "KlikDemo", "Events", "DemoHarian", "DemoTop"];
 
@@ -43,8 +43,8 @@ function buildDataWorkbook(d) {
   const wb = XLSX.utils.book_new();
   const add = (name, aoa) => XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), name);
   add("Produk", [
-    ["id", "nama", "gambar", "penerangan", "kategori", "demo", "likes"],
-    ...(d.products || []).map((p) => [p.id, p.nama, p.gambar, p.penerangan, p.kategori, p.demo, p.likes]),
+    ["id", "nama", "gambar", "penerangan", "kategori", "demo", "likes", "harga_sebelum", "harga_selepas"],
+    ...(d.products || []).map((p) => [p.id, p.nama, p.gambar, p.penerangan, p.kategori, p.demo, p.likes, p.harga_sebelum || 0, p.harga_selepas || 0]),
   ]);
   add("Kategori", [["nama"], ...(d.categories || []).map((c) => [c])]);
   add("Testimoni", [
@@ -53,8 +53,8 @@ function buildDataWorkbook(d) {
   ]);
   const pr = d.profile || {};
   add("Profil", [
-    ["nama", "biodata", "kepakaran", "penerangan", "gambar"],
-    [pr.nama, pr.biodata, (pr.kepakaran || []).join("; "), pr.penerangan, pr.gambar],
+    ["nama", "biodata", "kepakaran", "penerangan", "gambar", "link", "sijil"],
+    [pr.nama, pr.biodata, (pr.kepakaran || []).join("; "), pr.penerangan, pr.gambar, pr.link || "", (pr.sijil || []).join("; ")],
   ]);
   const sc = d.socials || {};
   add("Socmed", [["platform", "url"], ...SOCMED_ORDER.map((k) => [k, sc[k] || ""])]);
@@ -107,6 +107,7 @@ function parseContent(wb) {
     id: String(o.id || ""), nama: String(o.nama || ""), gambar: String(o.gambar || ""),
     penerangan: String(o.penerangan || ""), kategori: String(o.kategori || ""),
     demo: String(o.demo || ""), likes: num(o.likes),
+    harga_sebelum: num(o.harga_sebelum), harga_selepas: num(o.harga_selepas),
   }));
   const categories = rowsOf(wb.Sheets["Kategori"]).slice(1).map((r) => String(r[0] || "").trim()).filter(Boolean);
   const testimonials = byHeader("Testimoni").map((o) => ({
@@ -118,6 +119,8 @@ function parseContent(wb) {
     nama: String(prRow.nama || ""), biodata: String(prRow.biodata || ""),
     kepakaran: String(prRow.kepakaran || "").split(";").map((x) => x.trim()).filter(Boolean),
     penerangan: String(prRow.penerangan || ""), gambar: String(prRow.gambar || ""),
+    link: String(prRow.link || ""),
+    sijil: String(prRow.sijil || "").split(";").map((x) => x.trim()).filter(Boolean),
   };
   const socials = {};
   byHeader("Socmed").forEach((o) => {

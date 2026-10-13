@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Koleksi Sistem Saya</title>
+<title>Koleksi Dr Excel</title>
 <link rel="stylesheet" href="sys/style.css">
 </head>
 <body>
@@ -30,9 +30,28 @@
   <!-- BAKUL -->
   <section id="page-bakul" class="page">
     <div id="cartList"></div>
+    <div id="cartTotal" class="card pad hidden" style="margin-top:10px"></div>
     <div class="row">
       <button id="clearCartBtn" class="btn block">Empty</button>
       <button id="checkoutBtn" class="btn primary block">Checkout</button>
+    </div>
+    <div class="card pad" id="notaCard" style="margin-top:10px">
+      <h3 style="margin:0 0 8px">Nota (nak custom, demo etc)</h3>
+      <textarea id="notaText" rows="3" placeholder="cth: nak demo, nak custom..."></textarea>
+    </div>
+    <div class="card pad" id="stepCard" style="margin-top:10px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h3 style="margin:0">Step Dapatkan Sistem</h3>
+        <button id="stepEditBtn" class="btn small admin-only hidden">Edit</button>
+      </div>
+      <div id="stepContent" style="margin-top:8px;white-space:pre-wrap"></div>
+      <div id="stepEditBox" class="hidden" style="margin-top:8px">
+        <textarea id="stepText" rows="5" placeholder="Tulis langkah mendapatkan sistem..."></textarea>
+        <div class="row" style="margin-top:8px">
+          <button id="stepSaveBtn" class="btn primary">Simpan</button>
+          <button id="stepCancelBtn" class="btn">Batal</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -63,6 +82,9 @@
       <div id="socmedInputs"></div>
       <button id="socmedSaveBtn" class="btn primary block">Simpan Link Socmed</button>
     </div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button id="adminFab" class="admin-fab-static">Admin</button>
+    </div>
   </section>
 
   <!-- ADMIN: TETAPAN -->
@@ -89,8 +111,24 @@
       <div id="catList" class="stack" style="margin-top:8px"></div>
     </div>
     <div class="card pad" style="margin-top:10px">
-      <h3 style="margin:0 0 8px">Klik Website Ikut Hari</h3>
-      <p id="miniNote" class="hint">Memuatkan...</p>
+      <h3 style="margin:0 0 8px">Bayar</h3>
+      <input id="bBankNama" placeholder="Nama bank" style="margin-top:6px">
+      <input id="bBankNo" placeholder="No akaun bank" style="margin-top:6px">
+      <input id="bBankPenama" placeholder="Penama akaun bank" style="margin-top:6px">
+      <div class="row" style="margin-top:8px">
+        <input id="bQrBank" placeholder="URL QR bank / uploads/...">
+        <button id="bQrBankUp" class="btn">Upload</button>
+        <input id="bQrBankFile" type="file" accept=".png,.jpg,.jpeg,.webp,.gif" class="hidden">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="bQrTng" placeholder="URL QR TnG / uploads/...">
+        <button id="bQrTngUp" class="btn">Upload</button>
+        <input id="bQrTngFile" type="file" accept=".png,.jpg,.jpeg,.webp,.gif" class="hidden">
+      </div>
+      <button id="bayarSaveBtn" class="btn primary block">Simpan Bayar</button>
+    </div>
+    <div class="card pad" style="margin-top:10px">
+      <h3 style="margin:0 0 8px">Analisis</h3>
       <div id="miniChart"></div>
       <button id="miniRefresh" class="btn block">Muat Semula Carta</button>
     </div>
@@ -104,7 +142,6 @@
     </div>
     <div class="card pad" style="margin-top:10px">
       <h3 style="margin:0 0 8px">Data</h3>
-      <p class="hint">Export Data: kandungan website (produk, kategori, testimoni, profil, socmed, tetapan). Export Analisis: data klik & pelawat. Import ikut format fail export dan akan overwrite bahagian berkaitan sahaja.</p>
       <div class="row">
         <button id="exportDataBtn" class="btn primary">Export Data</button>
         <button id="exportAnaBtn" class="btn primary">Export Analisis</button>
@@ -117,10 +154,6 @@
     </div>
   </section>
 </main>
-
-<footer class="footer">
-  <button id="adminFab" class="admin-fab-static">Admin</button>
-</footer>
 
 <!-- BOTTOM NAV -->
 <nav id="bottomNav" class="bottom-nav">
@@ -157,14 +190,21 @@
 <div id="aboutModal" class="modal hidden">
   <div class="modal-card">
     <h3>Edit Tentang</h3>
-    <input id="aNama" placeholder="Nama">
-    <input id="aBiodata" placeholder="Biodata ringkas" style="margin-top:8px">
-    <input id="aKepakaran" placeholder="Kepakaran (koma)" style="margin-top:8px">
-    <textarea id="aPenerangan" rows="3" placeholder="Penerangan perkhidmatan" style="margin-top:8px"></textarea>
     <div class="row" style="margin-top:8px">
       <input id="aGambar" placeholder="URL gambar profil">
       <button id="aUpBtn" class="btn">Upload</button>
       <input id="aFile" type="file" accept=".png,.jpg,.jpeg,.webp,.gif" class="hidden">
+    </div>
+    <input id="aNama" placeholder="Nama" style="margin-top:8px">
+    <input id="aBiodata" placeholder="Biodata ringkas" style="margin-top:8px">
+    <input id="aLink" placeholder="Link ke site lain https://..." style="margin-top:8px">
+    <div style="margin-top:8px">
+      <label class="hint">Sijil (gambar, boleh pilih banyak)</label>
+      <div class="row" style="margin-top:6px">
+        <button id="aSijilUpBtn" class="btn" type="button">Upload Sijil</button>
+        <input id="aSijilFile" type="file" accept=".png,.jpg,.jpeg,.webp,.gif" multiple class="hidden">
+      </div>
+      <div id="aSijilList" class="stack" style="margin-top:8px"></div>
     </div>
     <div class="row">
       <button id="aSaveBtn" class="btn primary">Simpan</button>
@@ -184,6 +224,10 @@
       <input id="npGambar" placeholder="URL gambar / uploads/...">
     </div>
     <textarea id="npPenerangan" rows="2" placeholder="Penerangan ringkas" style="margin-top:8px"></textarea>
+    <div class="row" style="margin-top:8px">
+      <input id="npHargaSebelum" type="number" min="0" step="0.01" placeholder="Harga sebelum (RM)">
+      <input id="npHargaSelepas" type="number" min="0" step="0.01" placeholder="Harga selepas (RM)">
+    </div>
     <div class="row" style="margin-top:8px">
       <input id="npFile" type="file" accept=".png,.jpg,.jpeg,.webp,.gif">
       <button id="npUploadBtn" class="btn">Upload</button>
@@ -216,6 +260,35 @@
       <button id="tSaveBtn" class="btn primary">Simpan</button>
       <button id="tCancelBtn" class="btn">Batal</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal checkout -->
+<div id="checkoutModal" class="modal hidden">
+  <div class="modal-card wide">
+    <h3>Checkout</h3>
+    <div class="card pad">
+      <input id="coNama" placeholder="Nama">
+      <input id="coWasap" placeholder="No whatsapp" style="margin-top:6px">
+      <input id="coEmail" type="email" placeholder="Email" style="margin-top:6px">
+      <input id="coSocmed" placeholder="Nama socmed (optional)" style="margin-top:6px">
+    </div>
+    <div class="card pad" id="coBankBox"></div>
+    <div class="card pad" id="coQrBox"></div>
+    <label class="row" style="align-items:center;gap:8px">
+      <input id="coPaid" type="checkbox" style="width:auto"> <span>Saya dah bayar</span>
+    </label>
+    <div class="row">
+      <button id="coCancelBtn" class="btn">Batal</button>
+      <button id="coSendBtn" class="btn primary">Hantar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal magnify sijil -->
+<div id="sijilModal" class="modal hidden">
+  <div class="modal-card wide">
+    <img id="sijilImg" style="width:100%;border-radius:10px;object-fit:contain">
   </div>
 </div>
 

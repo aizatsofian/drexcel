@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanImport, cleanItem } from '../cloud/validation.mjs';
 import { summary } from '../cloud/store.mjs';
-test('whitelist produk dan validasi URL',()=>{
-  assert.deepEqual(cleanItem('products',{nama:'A',kategori:'B',harga:500}),{nama:'A',kategori:'B',gambar:'',penerangan:'',demo:''});
+test('whitelist produk dan validasi URL', () => {
+  assert.deepEqual(cleanItem('products', { nama: 'A', kategori: 'B', harga: 500 }), { nama: 'A', kategori: 'B', gambar: '', penerangan: '', demo: '', harga_sebelum: 0, harga_selepas: 0 });
+  assert.deepEqual(cleanItem('products', { nama: 'A', kategori: 'B', harga_sebelum: 100, harga_selepas: 80 }), { nama: 'A', kategori: 'B', gambar: '', penerangan: '', demo: '', harga_sebelum: 100, harga_selepas: 80 });
   assert.throws(()=>cleanItem('products',{nama:'A',kategori:'B',gambar:'javascript:alert(1)'}));
   assert.deepEqual(cleanItem('products',{nama:'Baru'},true),{nama:'Baru'});
 });
