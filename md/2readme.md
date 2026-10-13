@@ -216,3 +216,11 @@ Aliran uji: `GET /api/data` (12 produk, tiada `harga`/`siteName`/`themeColor`, t
 - **Bakul — Nota:** `#notaCard` baharu di `index.html` (atas `#stepCard`) — tajuk `Nota (nak custom, demo etc)` + `textarea#notaText` (`cth: nak demo, nak custom...`). Nilai simpan `localStorage["nota"]` setiap input (`js/app.js` init), dimuat semula bila buka. `sendCheckout()` baca textarea (fallback localStorage) dan tambah baris `nota : ...` dalam mesej WhatsApp selepas `status` jika tidak kosong; kosong = baris tiada. Tiada perubahan backend/D1/Excel — Nota bukan medan server.
 - **Tentang — buang Sijil:** `renderAbout()` di `js/app.js` buang `<b>Sijil</b>`, grid gambar kekal; klik gambar → `#sijilModal` magnify kekal (tutup klik-luar), tiada butang zoom/tutup baharu. Label `Sijil` dalam `#aboutModal` (admin edit) dikekalkan supaya admin tahu medan upload.
 - **Ujian semasa:** `node --check js/app.js` OK. Belum uji: emulator D1, preview remote, production deploy, UI browser.
+
+## 16. Fasa 7 — Deploy Fasa 6/6b/6c LIVE (13 Okt 2026)
+
+- **Status: LIVE.** Preview https://phase4-preview.drexcel.pages.dev (deployment `3e37c71a`), production https://drexcel.pages.dev (deployment `c99ed6f0`). Kod GitHub main commit `0afd010` (19 fail, +`migrations/0002_prices.sql` baharu). Gambar/repo sedia ada tidak ditimpa; root `1 (1..5).png` dan `images/uploads/*` dikekalkan.
+- **Migrasi:** `0002_prices.sql` applied preview + production (`harga_sebelum/harga_selepas` disahkan via PRAGMA). Ujian `npm test` 9/9 lulus, `npm ci` 0 vulnerability, `npm run build` OK sebelum deploy.
+- **Verifikasi preview:** HTML ada `#notaCard/#notaText`, `js/app.js` ada `notaText`, `GET /api/data` ada `harga_sebelum/harga_selepas`, kiraan 107 produk kekal.
+- **Verifikasi production (read-only, tiada tulis DB):** HTML ada notaCard/notaText, produk pertama `p01` ada kedua-dua medan harga, kiraan 107 kekal. Tiada reseed/import overwrite production.
+- **Prosedur dipakai:** sync terpilih G: → staging `drexcel-publish` (18 ubah + 1 baharu, tanpa gambar/private), `npm ci` di disk C:, migrasi preview → deploy preview → sahkan → migrasi production → deploy production → sahkan → push main. Deploy manual Wrangler 4.149.0, bukan push-trigger.
