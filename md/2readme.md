@@ -271,3 +271,8 @@ Aliran uji: `GET /api/data` (12 produk, tiada `harga`/`siteName`/`themeColor`, t
 - **Ujian tulis production (cleanup penuh):** cipta produk ujian (harga 100/80 OK) → PUT rename OK → upload PNG 1x1 OK bytes tepat → padam OK. Insiden: larian skrip pertama parse respons salah (`item` vs `product`) dan tinggalkan 1 produk; dikesan dan dipadam — verified 96 produk, 0 sisa. Produk sebenar `Sistem Analisis Ujian` tidak disentuh (nama mirip, id disahkan sebelum padam).
 - **Nota push:** push pertama ditolak kerana commit gambar ujian `[skip ci]` masuk dahulu; `pull --rebase` kemudian push OK. PNG ujian 100 bait dibuang semula (`e689ab7`) — repo bersih.
 - **Belum uji:** browser interaktif + SheetJS export/import sebenar di production.
+
+## 23. Repo lama MINE (13 Okt 2026)
+
+- **Soalan pengguna:** kenapa `Deployment paused` + kenapa repo lama tidak dipadam. Jawapan: paused = auto-deploy Git dimatikan sengaja di Fasa 5 (repo lama tidak boleh deploy); deploy manual Wrangler tidak terjejas.
+- **Semakan (`gh repo list`):** akaun hanya ada 4 repo (`drexcel`, `bromeliadtrue`, `PROTON`, `peroduaimage`) — repo `MINE` sudah tiada, tiada apa untuk dipadam. Badge `aizatsofian/MINE` di dashboard hanya rujukan lama yang tidak aktif, tidak menjejaskan site live.
